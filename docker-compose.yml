@@ -1,0 +1,92 @@
+# Sobe os 3 microsserviços + PostgreSQL (os_db e billing_db) + LocalStack
+# (SQS e DynamoDB) para rodar a saga ponta a ponta localmente.
+#
+# Pré-requisito: os repositórios clonados lado a lado:
+#   ../fiap-officine-os-service (ou ../fiap-officine-api)
+#   ../fiap-officine-billing-service
+#   ../fiap-officine-execution-service
+x-aws-env: &aws-env
+  AWS_ENDPOINT_URL: http://localstack:4566
+  AWS_REGION: sa-east-1
+  AWS_ACCESS_KEY_ID: test
+  AWS_SECRET_ACCESS_KEY: test
+  SQS_QUEUE_PREFIX: fiap-officine
+  SQS_WAIT_TIME_SECONDS: "2"
+  RUN_WORKERS: "true"
+  APP_ENV: development
+  JWT_SECRET_KEY: e2e-segredo-compartilhado
+  OUTBOX_RELAY_INTERVAL_SECONDS: "0.5"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: officine
+    volumes:
+      - ./scripts/postgres-init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d officine"]
+      interval: 3s
+      retries: 20
+
+  localstack:
+    image: localstack/localstack:3.8
+    environment:
+      SERVICES: sqs,dynamodb
+      AWS_DEFAULT_REGION: sa-east-1
+      SQS_QUEUE_PREFIX: fiap-officine
+    ports:
+      - "4566:4566"
+    volumes:
+      - ./scripts/localstack-init.sh:/etc/localstack/init/ready.d/init-aws.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "awslocal sqs get-queue-url --queue-name fiap-officine-os-saga-replies --region sa-east-1"]
+      interval: 3s
+      retries: 40
+
+  os-service:
+    build: ${OS_SERVICE_DIR:-../fiap-officine-api}
+    ports: ["${OS_PORT:-8000}:8000"]
+    environment:
+      <<: *aws-env
+      DB_HOST: postgres
+      DB_USER: os_service
+      DB_PASSWORD: os_service
+      DB_NAME: os_db
+      INTERNAL_API_TOKEN: e2e-internal
+      SAGA_PAYMENT_TIMEOUT_SECONDS: "120"
+      SAGA_SWEEP_INTERVAL_SECONDS: "5"
+    command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+    depends_on:
+      postgres: { condition: service_healthy }
+      localstack: { condition: service_healthy }
+
+  billing-service:
+    build: ${BILLING_SERVICE_DIR:-../fiap-officine-billing-service}
+    ports: ["${BILLING_PORT:-8001}:8000"]
+    environment:
+      <<: *aws-env
+      DB_HOST: postgres
+      DB_USER: billing_service
+      DB_PASSWORD: billing_service
+      DB_NAME: billing_db
+      PAYMENT_GATEWAY: ${PAYMENT_GATEWAY:-fake}
+      MP_ACCESS_TOKEN: ${MP_ACCESS_TOKEN:-}
+      MP_WEBHOOK_SECRET: ${MP_WEBHOOK_SECRET:-}
+      MP_NOTIFICATION_URL: ${MP_NOTIFICATION_URL:-}
+    command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+    depends_on:
+      postgres: { condition: service_healthy }
+      localstack: { condition: service_healthy }
+
+  execution-service:
+    build: ${EXECUTION_SERVICE_DIR:-../fiap-officine-execution-service}
+    ports: ["${EXECUTION_PORT:-8002}:8000"]
+    environment:
+      <<: *aws-env
+      DYNAMODB_TABLE_PREFIX: fiap-officine
+      DYNAMODB_CREATE_TABLES: "true"
+    depends_on:
+      localstack: { condition: service_healthy }
