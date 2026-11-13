@@ -1,0 +1,556 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Tech Challenge Fase 4 — fiap-officine</title>
+<!--
+  Fonte do PDF da entrega. Para gerar o PDF:  powershell -File gerar-pdf.ps1
+  Campos a preencher estão marcados com a classe "todo" (fundo amarelo).
+-->
+<style>
+  @page { size: A4; margin: 18mm 16mm 18mm 16mm; }
+  :root { --ink: #1d2433; --muted: #5b6475; --line: #d9dee7; --accent: #1f5fbf; --soft: #f3f6fb; --todo: #fff3b0; }
+  * { box-sizing: border-box; }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { font-family: "Segoe UI", Roboto, Arial, sans-serif; color: var(--ink); font-size: 10.5pt; line-height: 1.45; margin: 0; }
+  h1 { font-size: 20pt; margin: 0 0 4mm; color: var(--accent); }
+  h2 { font-size: 15pt; margin: 0 0 3mm; padding-bottom: 1.5mm; border-bottom: 2px solid var(--accent); }
+  h3 { font-size: 12pt; margin: 5mm 0 2mm; }
+  p { margin: 0 0 2.5mm; }
+  ul, ol { margin: 0 0 3mm; padding-left: 6mm; }
+  li { margin-bottom: 1mm; }
+  code { font-family: Consolas, "Cascadia Mono", monospace; font-size: 9pt; background: var(--soft); padding: 0 1mm; border-radius: 2px; }
+  pre.code { font-family: Consolas, monospace; font-size: 8.5pt; background: var(--soft); border: 1px solid var(--line); border-radius: 3px; padding: 3mm; white-space: pre-wrap; margin: 0 0 3mm; }
+  table { width: 100%; border-collapse: collapse; margin: 0 0 4mm; font-size: 9.2pt; page-break-inside: auto; }
+  th, td { border: 1px solid var(--line); padding: 1.6mm 2mm; text-align: left; vertical-align: top; }
+  th { background: var(--soft); font-weight: 600; }
+  tr { page-break-inside: avoid; }
+  section { page-break-before: always; }
+  .todo { background: var(--todo); padding: 0 1mm; border-radius: 2px; }
+  .print { border: 2px dashed #c9a400; background: #fffbe6; color: #6b5a00; border-radius: 4px; padding: 10mm 4mm; text-align: center; margin: 2mm 0 4mm; font-size: 9.5pt; page-break-inside: avoid; }
+  .note { border-left: 3px solid var(--accent); background: var(--soft); padding: 2mm 3mm; margin: 0 0 3mm; }
+  .diagram { text-align: center; margin: 2mm 0 4mm; page-break-inside: avoid; }
+  .diagram svg { max-width: 100%; max-height: 205mm; height: auto; }
+  .diagram.fit svg { max-height: 165mm; }
+  .caption { font-size: 8.5pt; color: var(--muted); text-align: center; margin-top: -2mm; margin-bottom: 4mm; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 5mm; }
+  /* Capa */
+  .cover { height: 255mm; display: flex; flex-direction: column; justify-content: space-between; }
+  .cover .top { margin-top: 30mm; }
+  .cover .kicker { font-size: 11pt; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  .cover h1 { font-size: 30pt; margin: 4mm 0 2mm; }
+  .cover .subtitle { font-size: 14pt; color: var(--muted); }
+  .cover table { font-size: 10.5pt; }
+  .toc { columns: 2; font-size: 10pt; }
+  .toc li { break-inside: avoid; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════ CAPA ═══════════════════════ -->
+<div class="cover">
+  <div class="top">
+    <div class="kicker">FIAP · Pós-Tech Software Architecture (SOAT)</div>
+    <h1>Tech Challenge — Fase 4</h1>
+    <div class="subtitle">fiap-officine: gestão de oficina mecânica em microsserviços com Saga orquestrada</div>
+  </div>
+  <div>
+    <h3>Grupo <span class="todo">[Nº DO GRUPO]</span></h3>
+    <table>
+      <tr><th style="width:70%">Participante</th><th>RM</th></tr>
+      <tr><td><span class="todo">[NOME COMPLETO]</span></td><td><span class="todo">[RM]</span></td></tr>
+      <tr><td><span class="todo">[NOME COMPLETO]</span></td><td><span class="todo">[RM]</span></td></tr>
+      <tr><td><span class="todo">[NOME COMPLETO]</span></td><td><span class="todo">[RM]</span></td></tr>
+      <tr><td><span class="todo">[NOME COMPLETO]</span></td><td><span class="todo">[RM]</span></td></tr>
+      <tr><td><span class="todo">[NOME COMPLETO]</span></td><td><span class="todo">[RM]</span></td></tr>
+    </table>
+    <p style="color:var(--muted)">Novembro de 2026</p>
+  </div>
+</div>
+
+<!-- ═══════════════════════ 1. LINKS ═══════════════════════ -->
+<section>
+  <h2>1. Entregáveis</h2>
+  <h3>Vídeo de demonstração</h3>
+  <p><span class="todo">[LINK DO VÍDEO — YouTube não listado ou Google Drive]</span></p>
+
+  <h3>Repositórios (organização <code>fiap-officine</code> no GitHub)</h3>
+  <table>
+    <tr><th>Repositório</th><th>Conteúdo</th></tr>
+    <tr><td><a href="https://github.com/fiap-officine/fiap-officine-api">github.com/fiap-officine/fiap-officine-api</a></td><td><b>OS Service</b>: orquestrador da saga, clientes, veículos, catálogo e ordens de serviço (PostgreSQL <code>os_db</code>)</td></tr>
+    <tr><td><a href="https://github.com/fiap-officine/fiap-officine-billing-service">github.com/fiap-officine/fiap-officine-billing-service</a></td><td><b>Billing Service</b>: orçamentos, aprovação e pagamentos no Mercado Pago (PostgreSQL <code>billing_db</code>)</td></tr>
+    <tr><td><a href="https://github.com/fiap-officine/fiap-officine-execution-service">github.com/fiap-officine/fiap-officine-execution-service</a></td><td><b>Execution Service</b>: estoque, reserva de peças e fila de execução (DynamoDB)</td></tr>
+    <tr><td><a href="https://github.com/fiap-officine/fiap-officine-lambda">github.com/fiap-officine/fiap-officine-lambda</a></td><td>Lambda de autenticação do cliente por CPF e authorizer JWT do API Gateway</td></tr>
+    <tr><td><a href="https://github.com/fiap-officine/fiap-officine-kubernets">github.com/fiap-officine/fiap-officine-kubernets</a></td><td>Plataforma: VPC, cluster K3s, API Gateway, ECR (Terraform)</td></tr>
+    <tr><td><a href="https://github.com/fiap-officine/fiap-officine-database">github.com/fiap-officine/fiap-officine-database</a></td><td>Instância RDS PostgreSQL compartilhada (Terraform)</td></tr>
+    <tr><td><a href="https://github.com/fiap-officine/fiap-officine-e2e">github.com/fiap-officine/fiap-officine-e2e</a></td><td>Ambiente ponta a ponta (docker-compose), roteiro automatizado da saga e collection Postman</td></tr>
+  </table>
+
+  <h3>Conteúdo deste documento</h3>
+  <ol class="toc">
+    <li>Entregáveis</li>
+    <li>Arquitetura geral</li>
+    <li>Divisão dos microsserviços</li>
+    <li>Decisões tecnológicas</li>
+    <li>Saga orquestrada</li>
+    <li>Comunicação e contratos</li>
+    <li>Integração com o Mercado Pago</li>
+    <li>Qualidade e testes</li>
+    <li>CI/CD e proteção de branches</li>
+    <li>Infraestrutura e Kubernetes</li>
+    <li>Observabilidade</li>
+    <li>Trade-offs e limitações</li>
+  </ol>
+</section>
+
+<!-- ═══════════════════════ 2. ARQUITETURA ═══════════════════════ -->
+<section>
+  <h2>2. Arquitetura geral</h2>
+  <p>O monólito da Fase 3 foi dividido em <b>três microsserviços</b>, cada um com repositório, pipeline,
+  infraestrutura (Terraform) e banco de dados próprios. O cliente e o operador falam com os serviços por
+  <b>REST</b>, através do API Gateway e do Ingress Traefik; entre si, os serviços conversam apenas por
+  <b>mensageria (Amazon SQS)</b>. Nenhum serviço acessa o banco de outro — inclusive a Lambda de autenticação,
+  que passou a consultar o OS Service por uma rota interna.</p>
+  <div class="diagram">
+<svg viewBox="0 0 960 725" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Arial, sans-serif" role="img" aria-label="Arquitetura geral">
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#3b4558"/></marker>
+    <marker id="ahc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1f5fbf"/></marker>
+    <marker id="ahr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1d8a5a"/></marker>
+  </defs>
+  <style>
+    .box { fill: #ffffff; stroke: #3b4558; stroke-width: 1.4; }
+    .ext { fill: #f3f6fb; stroke: #3b4558; stroke-width: 1.2; }
+    .t { font-size: 15px; fill: #1d2433; text-anchor: middle; }
+    .tb { font-size: 15px; font-weight: 600; fill: #1d2433; text-anchor: middle; }
+    .ts { font-size: 12.5px; fill: #5b6475; text-anchor: middle; }
+    .lbl { font-size: 12.5px; fill: #3b4558; }
+    .ln { stroke: #3b4558; stroke-width: 1.4; fill: none; marker-end: url(#ah); }
+    .dash { stroke-dasharray: 5 4; }
+    .cmd { stroke: #1f5fbf; stroke-width: 1.8; fill: none; }
+    .rep { stroke: #1d8a5a; stroke-width: 1.8; fill: none; }
+  </style>
+
+  <!-- Clientes -->
+  <rect class="ext" x="40" y="18" width="180" height="46" rx="8"/><text class="t" x="130" y="46">Cliente (CPF)</text>
+  <rect class="ext" x="250" y="18" width="180" height="46" rx="8"/><text class="t" x="340" y="46">Operador / Mecânico</text>
+
+  <!-- Borda -->
+  <rect class="box" x="40" y="100" width="160" height="50" rx="8"/><text class="tb" x="120" y="122">Lambda</text><text class="ts" x="120" y="140">auth por CPF</text>
+  <rect class="box" x="260" y="100" width="380" height="50" rx="8"/><text class="tb" x="450" y="122">API Gateway HTTP</text><text class="ts" x="450" y="140">Lambda Authorizer (JWT)</text>
+  <rect class="ext" x="710" y="100" width="210" height="50" rx="8"/><text class="tb" x="815" y="122">Mercado Pago</text><text class="ts" x="815" y="140">Checkout Pro (sandbox)</text>
+
+  <path class="ln" d="M130,64 L330,99"/>
+  <path class="ln" d="M340,64 L420,99"/>
+  <path class="ln" d="M260,125 L201,125"/><text class="lbl" x="214" y="117">/auth</text>
+  <path class="ln" d="M710,125 L641,125"/><text class="lbl" x="648" y="117">webhook</text>
+
+  <!-- Cluster -->
+  <rect x="20" y="168" width="920" height="200" rx="10" fill="#eaf1fb" stroke="#9db7de" stroke-width="1.2"/>
+  <text class="lbl" x="128" y="190" font-weight="600" fill="#1f5fbf">Cluster K3s (officine)</text>
+  <rect class="box" x="330" y="180" width="240" height="44" rx="8"/><text class="tb" x="450" y="200">Traefik Ingress</text><text class="ts" x="450" y="217">roteamento por path</text>
+  <path class="ln" d="M450,150 L450,179"/>
+
+  <!-- Colunas dos microsserviços (serviço + banco próprio) -->
+  <rect x="30" y="258" width="280" height="282" rx="10" fill="none" stroke="#8a93a6" stroke-width="1.2" stroke-dasharray="6 4"/>
+  <rect x="340" y="258" width="280" height="282" rx="10" fill="none" stroke="#8a93a6" stroke-width="1.2" stroke-dasharray="6 4"/>
+  <rect x="650" y="258" width="280" height="282" rx="10" fill="none" stroke="#8a93a6" stroke-width="1.2" stroke-dasharray="6 4"/>
+  <text class="ts" x="170" y="277" font-weight="600">OS Service</text>
+  <text class="ts" x="480" y="277" font-weight="600">Billing Service</text>
+  <text class="ts" x="790" y="277" font-weight="600">Execution Service</text>
+
+  <rect class="box" x="50" y="290" width="240" height="62" rx="8"/><text class="tb" x="170" y="315">os-service</text><text class="ts" x="170" y="336">API + orquestrador da saga</text>
+  <rect class="box" x="360" y="290" width="240" height="62" rx="8"/><text class="tb" x="480" y="315">billing-service</text><text class="ts" x="480" y="336">orçamento + pagamento</text>
+  <rect class="box" x="670" y="290" width="240" height="62" rx="8"/><text class="tb" x="790" y="315">execution-service</text><text class="ts" x="790" y="336">estoque + fila de execução</text>
+
+  <path class="ln" d="M420,224 L200,289"/>
+  <path class="ln" d="M450,224 L470,289"/>
+  <path class="ln" d="M480,224 L760,289"/>
+  <path class="ln dash" d="M110,150 L110,289"/><text class="lbl" x="116" y="248">GET /internal</text>
+  <path class="ln dash" d="M592,290 L780,151"/><text class="lbl" x="676" y="206">cobrança / estorno</text>
+
+  <!-- Bancos (gerenciados, fora do cluster) -->
+  <path d="M95,418 v62 a75,12 0 0 0 150,0 v-62" fill="#fff8e8" stroke="#a97a1c" stroke-width="1.3"/>
+  <ellipse cx="170" cy="418" rx="75" ry="12" fill="#fff3d6" stroke="#a97a1c" stroke-width="1.3"/>
+  <text class="tb" x="170" y="456">RDS PostgreSQL</text><text class="ts" x="170" y="476">os_db</text>
+  <path d="M405,418 v62 a75,12 0 0 0 150,0 v-62" fill="#fff8e8" stroke="#a97a1c" stroke-width="1.3"/>
+  <ellipse cx="480" cy="418" rx="75" ry="12" fill="#fff3d6" stroke="#a97a1c" stroke-width="1.3"/>
+  <text class="tb" x="480" y="456">RDS PostgreSQL</text><text class="ts" x="480" y="476">billing_db</text>
+  <path d="M715,418 v62 a75,12 0 0 0 150,0 v-62" fill="#fff8e8" stroke="#a97a1c" stroke-width="1.3"/>
+  <ellipse cx="790" cy="418" rx="75" ry="12" fill="#fff3d6" stroke="#a97a1c" stroke-width="1.3"/>
+  <text class="tb" x="790" y="456">DynamoDB</text><text class="ts" x="790" y="476">execucoes · estoque</text>
+  <path class="ln" d="M170,352 L170,404"/>
+  <path class="ln" d="M480,352 L480,404"/>
+  <path class="ln" d="M790,352 L790,404"/>
+
+  <!-- Barramentos de mensagens -->
+  <path class="cmd" d="M250,540 L250,565 L830,565"/>
+  <path class="cmd" d="M520,565 L520,639" marker-end="url(#ahc)"/>
+  <path class="cmd" d="M830,565 L830,639" marker-end="url(#ahc)"/>
+  <path class="cmd" d="M440,639 L440,541" marker-end="url(#ahc)"/>
+  <path class="cmd" d="M750,639 L750,541" marker-end="url(#ahc)"/>
+  <text class="lbl" x="262" y="559" fill="#1f5fbf" font-weight="600">comandos</text>
+
+  <path class="rep" d="M580,540 L580,592"/>
+  <path class="rep" d="M890,540 L890,592 L190,592 L190,639" marker-end="url(#ahr)"/>
+  <path class="rep" d="M100,639 L100,541" marker-end="url(#ahr)"/>
+  <text class="lbl" x="200" y="608" fill="#1d8a5a" font-weight="600">respostas e eventos</text>
+
+  <!-- SQS -->
+  <rect x="30" y="618" width="900" height="100" rx="10" fill="#f1f8f4" stroke="#8fc3a8" stroke-width="1.2"/>
+  <rect class="box" x="60" y="640" width="240" height="42" rx="6"/><text class="t" x="180" y="666">os-saga-replies</text>
+  <rect class="box" x="370" y="640" width="240" height="42" rx="6"/><text class="t" x="490" y="666">billing-commands</text>
+  <rect class="box" x="680" y="640" width="240" height="42" rx="6"/><text class="t" x="800" y="666">execution-commands</text>
+  <text class="lbl" x="480" y="707" text-anchor="middle" font-weight="600" fill="#1d6b47">Amazon SQS · cada fila com DLQ (maxReceiveCount = 5)</text>
+</svg>
+  </div>
+  <div class="caption">Figura 1 — Visão geral: REST na borda, SQS entre os serviços, um banco por serviço. Os três serviços enviam APM, traces e logs ao New Relic.</div>
+  <p>Cada serviço roda em um único pod com a API, o consumer da fila, o <i>outbox relay</i> e os varredores
+  (timeouts da saga e reconciliação de pagamentos) no mesmo processo, para caber no nó K3s <code>t3.micro</code>.</p>
+</section>
+
+<!-- ═══════════════════════ 3. DIVISÃO ═══════════════════════ -->
+<section>
+  <h2>3. Divisão dos microsserviços</h2>
+  <table>
+    <tr><th style="width:17%">Serviço</th><th style="width:38%">Responsabilidades</th><th>Dados que possui</th><th style="width:13%">Banco</th></tr>
+    <tr><td><b>OS Service</b><br/>(orquestrador)</td><td>Clientes, veículos, catálogo (serviços e peças com preço), abertura e acompanhamento da OS, histórico, <b>orquestração da saga</b>, cancelamento e entrega, login do operador</td><td><code>clientes</code>, <code>veiculos</code>, <code>servicos</code>, <code>pecas</code>, <code>ordens_servico</code> e itens, <code>historico</code>, <code>saga_instances</code>, <code>saga_log</code>, <code>outbox</code>, <code>processed_messages</code></td><td>PostgreSQL <code>os_db</code></td></tr>
+    <tr><td><b>Billing Service</b></td><td>Gerar orçamento, aprovação/recusa pelo cliente, cobrança no Mercado Pago, webhook, estorno (compensação), reconciliação de pagamentos</td><td><code>orcamentos</code>, <code>orcamento_itens</code>, <code>pagamentos</code>, <code>outbox</code>, <code>processed_messages</code></td><td>PostgreSQL <code>billing_db</code></td></tr>
+    <tr><td><b>Execution Service</b></td><td>Saldo e reserva de estoque, fila priorizada de execução, diagnóstico, reparo e finalização pelo mecânico</td><td>Tabela <code>execucoes</code> (fila, linha do tempo, idempotência e outbox) e tabela <code>estoque</code></td><td>DynamoDB</td></tr>
+  </table>
+  <h3>Critérios da divisão</h3>
+  <ul>
+    <li><b>Capacidades de negócio distintas</b>: atendimento (OS), financeiro (orçamento e pagamento) e produção
+    (oficina e estoque) mudam por motivos diferentes e têm atores diferentes (atendente, cliente, mecânico).</li>
+    <li><b>O estoque foi para o Execution</b>: a reserva de peças é um passo da saga com compensação natural
+    (liberar a reserva) e quem consome peça é a produção. O <b>catálogo</b> (nome e preço) ficou no OS Service:
+    o preço é "congelado" no comando <code>GerarOrcamento</code>, sem chamada síncrona entre serviços.</li>
+    <li><b>Banco por serviço</b>: OS e Billing precisam de transações ACID (saga, outbox e pagamento na mesma
+    transação); o Execution precisa de reserva atômica e condicional, o que o DynamoDB oferece com
+    <code>TransactWriteItems</code>.</li>
+  </ul>
+  <div class="note"><b>Isolamento dos bancos SQL.</b> O Free Tier cobre uma instância RDS. Cada serviço tem
+  <b>banco lógico e usuário próprios</b>, dono do seu banco, sem GRANT cruzado e com <code>CONNECT</code> revogado de
+  <code>PUBLIC</code>. A criação é feita por um Job Kubernetes idempotente no pipeline de cada serviço
+  (o RDS não é público). Uma segunda instância eliminaria o compartilhamento físico, se houver orçamento.</div>
+</section>
+
+<!-- ═══════════════════════ 4. TECNOLOGIAS ═══════════════════════ -->
+<section>
+  <h2>4. Decisões tecnológicas</h2>
+  <table>
+    <tr><th style="width:16%">Decisão</th><th style="width:20%">Escolha</th><th style="width:22%">Alternativas</th><th>Justificativa</th></tr>
+    <tr><td>Linguagem</td><td>Python 3.12, FastAPI, SQLAlchemy 2, uv</td><td>Java/Spring, Node</td><td>Domínio do time; reaproveita middleware, logs JSON e testes da Fase 3</td></tr>
+    <tr><td>Broker</td><td>Amazon SQS (standard + DLQ)</td><td>RabbitMQ no cluster, Kafka</td><td>Gerenciado, DLQ nativa, sem ocupar RAM do nó K3s <code>t3.micro</code>, custo dentro do Free Tier</td></tr>
+    <tr><td>NoSQL</td><td>DynamoDB</td><td>MongoDB</td><td><code>TransactWriteItems</code> condicional dá reserva atômica e idempotente; modelo chave-valor serve para a fila e a linha do tempo</td></tr>
+    <tr><td>SQL</td><td>PostgreSQL 16 (RDS)</td><td>MySQL</td><td>Já provisionado; ACID para OS, saga, outbox e pagamentos</td></tr>
+    <tr><td>Saga</td><td>Orquestrada</td><td>Coreografada</td><td>Ver seção 5</td></tr>
+    <tr><td>Pagamentos</td><td>Mercado Pago Checkout Pro (SDK oficial)</td><td>Pix direto, Stripe</td><td>Requisito do desafio; sandbox com compradores e cartões de teste; API de estorno</td></tr>
+    <tr><td>Testes</td><td>pytest, pytest-bdd, moto</td><td>behave, LocalStack nos testes</td><td>BDD integrado ao pytest e à cobertura; <code>moto</code> simula SQS e DynamoDB sem rede</td></tr>
+    <tr><td>Qualidade</td><td>SonarCloud</td><td>SonarQube self-hosted</td><td>Gratuito para repositórios públicos, Quality Gate no PR</td></tr>
+    <tr><td>Deploy</td><td>GitHub Actions, ECR, Kustomize</td><td>Helm, ArgoCD</td><td>Pipeline independente por repositório; Kustomize sem dependências extras</td></tr>
+    <tr><td>Observabilidade</td><td>New Relic (Fase 3)</td><td>Prometheus, Grafana, Jaeger</td><td>Já implementado; o desafio pede reaproveitar o monitoramento</td></tr>
+  </table>
+</section>
+
+<!-- ═══════════════════════ 5. SAGA ═══════════════════════ -->
+<section>
+  <h2>5. Saga orquestrada</h2>
+  <h3>Por que orquestrada</h3>
+  <ol>
+    <li><b>O fluxo é linear e tem esperas longas</b> (aprovação do cliente e pagamento). Um orquestrador com estado
+    persistido (<code>saga_instances</code>) trata prazos e retomadas de forma explícita.</li>
+    <li><b>A OS é o agregado dono do processo</b>: status da OS e estado da saga ficam no mesmo banco e na mesma transação.</li>
+    <li><b>Compensações centralizadas e legíveis</b>: a ordem do rollback está em um único lugar (uma tabela de transições declarativa).</li>
+    <li><b>Visibilidade</b>: <code>GET /api/v1/ordens-servico/{id}/saga</code> mostra o passo atual e a linha do tempo de cada OS.</li>
+    <li><b>Sem dependências cíclicas</b>: Billing e Execution não se conhecem; só respondem comandos.</li>
+  </ol>
+  <p><b>Trade-offs aceitos:</b> o orquestrador concentra a lógica do fluxo (mitigado por ser <i>stateless</i>, com estado
+  no banco) e o OS Service conhece os contratos dos outros serviços.</p>
+
+  <h3>Passos, comandos e compensações</h3>
+  <table>
+    <tr><th>#</th><th>Passo (participante)</th><th>Comando</th><th>Sucesso</th><th>Falha</th><th>Compensação</th></tr>
+    <tr><td>T1</td><td>Criar OS (OS Service)</td><td>—</td><td>—</td><td>validação 4xx</td><td>cancelar OS</td></tr>
+    <tr><td>T2</td><td>Gerar orçamento (Billing)</td><td><code>GerarOrcamento</code></td><td><code>OrcamentoGerado</code></td><td><code>OrcamentoFalhou</code></td><td><code>CancelarOrcamento</code></td></tr>
+    <tr><td>T3</td><td>Aprovação do cliente (Billing, REST)</td><td>—</td><td><code>OrcamentoAprovado</code></td><td><code>OrcamentoRecusado</code> / prazo</td><td>—</td></tr>
+    <tr><td>T4</td><td>Pagamento (Billing + Mercado Pago)</td><td><code>SolicitarPagamento</code></td><td><code>PagamentoConfirmado</code></td><td><code>PagamentoRecusado</code> / prazo</td><td><code>EstornarPagamento</code></td></tr>
+    <tr><td>T5</td><td>Reservar peças e enfileirar (Execution)</td><td><code>ReservarEEnfileirar</code></td><td><code>ExecucaoAgendada</code></td><td><code>ReservaFalhou</code></td><td><code>LiberarReserva</code></td></tr>
+    <tr><td>T6</td><td>Diagnóstico, reparo, finalização</td><td>—</td><td><code>DiagnosticoIniciado</code>, <code>ReparoIniciado</code>, <code>ExecucaoFinalizada</code></td><td>—</td><td><b>pivô</b>: sem compensação</td></tr>
+  </table>
+</section>
+
+<section>
+  <h3 style="margin-top:0">Ordem das compensações</h3>
+  <table>
+    <tr><th style="width:35%">Falha em</th><th>Compensações (em ordem inversa, cada uma confirmada antes da próxima)</th></tr>
+    <tr><td>T2 orçamento falhou</td><td>cancelar OS</td></tr>
+    <tr><td>T3 recusa ou prazo de aprovação</td><td><code>CancelarOrcamento</code> → cancelar OS</td></tr>
+    <tr><td>T4 recusa ou prazo de pagamento</td><td><code>CancelarOrcamento</code> → cancelar OS</td></tr>
+    <tr><td>T5 estoque insuficiente</td><td><code>EstornarPagamento</code> → <code>CancelarOrcamento</code> → cancelar OS</td></tr>
+    <tr><td>Cancelamento com a OS na fila</td><td><code>LiberarReserva</code> → <code>EstornarPagamento</code> → <code>CancelarOrcamento</code> → cancelar OS</td></tr>
+  </table>
+  <h3>Máquina de estados da saga</h3>
+  <div class="diagram fit">
+<pre class="mermaid">
+stateDiagram-v2
+    [*] --> STARTED: OS criada
+    STARTED --> BUDGET_PENDING: GerarOrcamento
+    BUDGET_PENDING --> APPROVAL_PENDING: OrcamentoGerado
+    BUDGET_PENDING --> COMPENSATING: OrcamentoFalhou ou prazo
+    APPROVAL_PENDING --> PAYMENT_PENDING: OrcamentoAprovado
+    APPROVAL_PENDING --> COMPENSATING: recusa ou prazo
+    PAYMENT_PENDING --> SCHEDULING: PagamentoConfirmado
+    PAYMENT_PENDING --> COMPENSATING: recusa ou prazo
+    SCHEDULING --> IN_EXECUTION: ExecucaoAgendada
+    SCHEDULING --> COMPENSATING: ReservaFalhou
+    IN_EXECUTION --> COMPLETED: ExecucaoFinalizada
+    COMPENSATING --> CANCELLED: compensações confirmadas
+    COMPENSATING --> FAILED: tentativas esgotadas
+    COMPLETED --> [*]
+    CANCELLED --> [*]
+    FAILED --> [*]
+</pre>
+  </div>
+  <div class="caption">Figura 2 — Estados da saga (tabela <code>saga_instances</code>). Status da OS: recebida → aguardando_orcamento → aguardando_aprovacao → aguardando_pagamento → aguardando_execucao → em_diagnostico → em_execucao → finalizada → entregue; antes do pivô, em_compensacao → cancelada.</div>
+
+</section>
+
+<section>
+  <h3 style="margin-top:0">Garantias técnicas</h3>
+  <ul>
+    <li><b>Transactional Outbox</b>: comando/evento gravado na tabela <code>outbox</code> na mesma transação da mudança de
+    estado (no DynamoDB, como item na mesma <code>TransactWriteItems</code>); um <i>relay</i> publica no SQS.</li>
+    <li><b>Consumidores idempotentes</b>: <code>processed_messages</code> (PostgreSQL) ou item condicional
+    <code>attribute_not_exists</code> (DynamoDB) na mesma transação do efeito — o SQS entrega <i>at-least-once</i>.</li>
+    <li><b>Retries e DLQ</b>: <code>maxReceiveCount = 5</code> em todas as filas; alerta quando a DLQ recebe mensagens.
+    Compensações também são repetidas; ao esgotar as tentativas a saga vai para <code>FAILED</code> e dispara alerta.</li>
+    <li><b>Prazos</b>: <code>deadline_at</code> por passo (orçamento 5 min, aprovação 48 h, pagamento 30 min — 2 min em
+    homolog para a demonstração) e um varredor periódico que dispara a compensação.</li>
+    <li><b>Concorrência</b>: <code>SELECT … FOR UPDATE</code> na linha da saga ao processar cada resposta.</li>
+    <li><b>Mensagens fora de ordem ou atrasadas</b>: eventos de progresso fora de ordem são aceitos; um pagamento que
+    chega depois do cancelamento é estornado automaticamente.</li>
+    <li><b>Pivô explícito</b>: depois de <code>ReparoIniciado</code> não há compensação; o cancelamento responde 409.</li>
+  </ul>
+  <h3>Sequência — compensação por estoque insuficiente</h3>
+  <div class="diagram">
+<pre class="mermaid">
+sequenceDiagram
+    autonumber
+    participant OS as OS Service
+    participant B as Billing
+    participant MP as Mercado Pago
+    participant E as Execution
+    OS-)E: ReservarEEnfileirar
+    E-)OS: ReservaFalhou (faltam peças)
+    OS->>OS: saga COMPENSATING, OS em_compensacao
+    OS-)B: EstornarPagamento
+    B->>MP: refund
+    B-)OS: PagamentoEstornado
+    OS-)B: CancelarOrcamento
+    B-)OS: OrcamentoCancelado
+    OS->>OS: OS cancelada, saga CANCELLED
+</pre>
+  </div>
+</section>
+
+<section>
+  <h3 style="margin-top:0">Sequência — caminho feliz</h3>
+  <div class="diagram">
+<pre class="mermaid">
+sequenceDiagram
+    autonumber
+    actor C as Cliente
+    participant OS as OS Service
+    participant B as Billing
+    participant MP as Mercado Pago
+    participant E as Execution
+    C->>OS: POST /ordens-servico
+    OS->>OS: OS + saga + outbox (1 transação)
+    OS-)B: GerarOrcamento
+    B-)OS: OrcamentoGerado
+    C->>B: POST /orcamentos/{id}/aprovar
+    B-)OS: OrcamentoAprovado
+    OS-)B: SolicitarPagamento
+    B->>MP: cria preferência (Checkout Pro)
+    C->>MP: paga
+    MP->>B: webhook (x-signature)
+    B->>MP: consulta o pagamento
+    B-)OS: PagamentoConfirmado
+    OS-)E: ReservarEEnfileirar
+    E->>E: reserva estoque + fila (TransactWriteItems)
+    E-)OS: ExecucaoAgendada
+    E-)OS: DiagnosticoIniciado, ReparoIniciado
+    E-)OS: ExecucaoFinalizada
+    OS->>OS: OS finalizada, saga COMPLETED
+</pre>
+  </div>
+</section>
+
+<!-- ═══════════════════════ 6. COMUNICAÇÃO ═══════════════════════ -->
+<section>
+  <h2>6. Comunicação e contratos</h2>
+  <table>
+    <tr><th style="width:22%">Tipo</th><th>Onde é usado</th></tr>
+    <tr><td><b>REST síncrono</b></td><td>Cliente e operador → serviços (via API Gateway e Ingress); Lambda → OS Service (<code>GET /internal/clientes/status/{cpf}</code>, protegido por token interno); Billing → API do Mercado Pago</td></tr>
+    <tr><td><b>Mensageria assíncrona (SQS)</b></td><td>Toda a orquestração da saga: comandos do OS Service e respostas/eventos dos participantes</td></tr>
+  </table>
+  <table>
+    <tr><th>Fila (+ DLQ)</th><th>Produtor</th><th>Consumidor</th><th>Mensagens</th></tr>
+    <tr><td><code>billing-commands</code></td><td>OS Service</td><td>Billing</td><td><code>GerarOrcamento</code>, <code>SolicitarPagamento</code>, <code>EstornarPagamento</code>, <code>CancelarOrcamento</code></td></tr>
+    <tr><td><code>execution-commands</code></td><td>OS Service</td><td>Execution</td><td><code>ReservarEEnfileirar</code>, <code>LiberarReserva</code></td></tr>
+    <tr><td><code>os-saga-replies</code></td><td>Billing, Execution</td><td>OS Service</td><td>respostas e eventos de progresso</td></tr>
+  </table>
+  <p>Cada fila pertence ao repositório do serviço que a consome (Terraform em <code>infra/</code>), com long polling e DLQ.</p>
+  <h3>Envelope padrão</h3>
+<pre class="code">{
+  "message_id": "uuid",            // chave de idempotência
+  "type": "GerarOrcamento",
+  "kind": "command | reply | event",
+  "saga_id": "uuid", "os_id": 123, "correlation_id": "uuid",
+  "occurred_at": "2026-11-07T17:00:00Z", "source": "os-service", "version": 1,
+  "trace": { "newrelic": "...", "traceparent": "...", "tracestate": "..." },
+  "payload": { }
+}</pre>
+  <p>Os contratos (JSON Schema do envelope e payloads de cada mensagem) estão versionados em
+  <code>docs/contracts/</code> de cada serviço, e as APIs REST em <code>docs/openapi.json</code> (Swagger em <code>/docs</code>,
+  <code>/billing/docs</code> e <code>/execution/docs</code>).</p>
+</section>
+
+<!-- ═══════════════════════ 7. MERCADO PAGO ═══════════════════════ -->
+<section>
+  <h2>7. Integração com o Mercado Pago</h2>
+  <ul>
+    <li><b>Cobrança</b>: ao receber <code>SolicitarPagamento</code>, o Billing cria uma preferência do <b>Checkout Pro</b>
+    (SDK oficial) com <code>external_reference</code> = id do pagamento e devolve o link de checkout ao cliente.</li>
+    <li><b>Webhook</b>: <code>POST /api/v1/pagamentos/webhook</code>, rota pública no API Gateway. A assinatura
+    <code>x-signature</code> (HMAC-SHA256 sobre <code>id</code>, <code>request-id</code> e <code>ts</code>) é validada e o pagamento é
+    <b>reconsultado na API do Mercado Pago</b> antes de qualquer mudança — o corpo da notificação nunca é confiado.</li>
+    <li><b>Estorno como compensação</b>: <code>EstornarPagamento</code> chama a API de refund; também estorna
+    automaticamente um pagamento que chegue depois de a OS ter sido cancelada.</li>
+    <li><b>Reconciliação</b>: se o webhook não chegar, um job consulta periodicamente os pagamentos pendentes por
+    <code>external_reference</code>.</li>
+    <li><b>Desenvolvimento e testes</b>: a porta <code>PaymentGateway</code> tem duas implementações —
+    <code>MercadoPagoGateway</code> (sandbox/produção) e <code>FakeGateway</code> (local, testes e roteiro E2E).</li>
+  </ul>
+  <div class="print">[INSERIR PRINT: checkout do Mercado Pago no sandbox e/ou pagamento aprovado e estornado no painel]</div>
+</section>
+
+<!-- ═══════════════════════ 8. QUALIDADE ═══════════════════════ -->
+<section>
+  <h2>8. Qualidade e testes</h2>
+  <table>
+    <tr><th>Repositório</th><th>Testes</th><th>Cobertura (branch)</th><th>Destaques</th></tr>
+    <tr><td>OS Service</td><td>208</td><td>94,7%</td><td>orquestrador (todos os caminhos e compensações), mensageria, API, 6 cenários BDD</td></tr>
+    <tr><td>Billing Service</td><td>57</td><td>93,3%</td><td>comandos da saga, assinatura do webhook, gateway, reconciliação</td></tr>
+    <tr><td>Execution Service</td><td>39</td><td>93,2%</td><td>reserva condicional no DynamoDB (moto), fila, idempotência</td></tr>
+    <tr><td>Lambda Auth</td><td>27</td><td>94%</td><td>authorizer JWT e cliente HTTP do OS Service</td></tr>
+  </table>
+  <p>O gate <code>--cov-fail-under=80</code> roda em todo PR e push, sem exclusões no relatório de cobertura.
+  O SonarCloud recebe o <code>coverage.xml</code> e o job <code>quality</code> só passa com o Quality Gate aprovado.</p>
+  <h3>BDD — fluxo completo da saga (pytest-bdd, Gherkin em português)</h3>
+  <p><code>tests/bdd/features/saga_ordem_servico.feature</code> executa o orquestrador real com participantes simulados
+  trocando mensagens pelo SQS (mockado com <code>moto</code>):</p>
+  <ul>
+    <li>Fluxo completo até a OS finalizada e a saga <code>COMPLETED</code></li>
+    <li>Orçamento recusado → orçamento cancelado e OS cancelada</li>
+    <li>Estoque insuficiente após o pagamento → estorno e cancelamento</li>
+    <li>Prazo de pagamento vencido → compensação</li>
+    <li>Cancelamento com a OS na fila → liberação da reserva, estorno e cancelamento</li>
+    <li>Mensagem duplicada não gera efeito em dobro</li>
+  </ul>
+  <p>Além disso, o repositório <code>fiap-officine-e2e</code> sobe os três serviços com PostgreSQL e LocalStack e roda o
+  caminho feliz e a compensação de ponta a ponta.</p>
+  <div class="print">[INSERIR PRINT: SonarCloud — cobertura e Quality Gate dos três serviços]</div>
+</section>
+
+<!-- ═══════════════════════ 9. CI/CD ═══════════════════════ -->
+<section>
+  <h2>9. CI/CD e proteção de branches</h2>
+  <p>Cada microsserviço tem pipeline próprio em GitHub Actions (<code>.github/workflows/ci-cd.yml</code>):</p>
+  <div class="diagram">
+<pre class="mermaid">
+flowchart LR
+    A["PR / push"] --> B["test<br/>ruff + pytest<br/>cobertura >= 80%"]
+    B --> C["quality<br/>SonarCloud<br/>Quality Gate"]
+    C -->|"push em develop/main"| D["build-push<br/>imagem no ECR<br/>tag = SHA"]
+    D --> E["deploy<br/>bootstrap do banco<br/>kustomize + rollout"]
+    E --> F["smoke test<br/>/health"]
+</pre>
+  </div>
+  <ul>
+    <li><b>Infraestrutura do serviço</b> (<code>infra.yml</code>): Terraform com state remoto no S3 — <code>plan</code> no PR,
+    <code>apply</code> no merge (filas + DLQ, tabelas DynamoDB, políticas IAM).</li>
+    <li><b>Segredos</b>: nunca versionados; gerados no pipeline a partir de GitHub Secrets como Secrets do Kubernetes.</li>
+    <li><b>Imagem imutável</b>: a tag é o SHA do commit, aplicada com <code>kustomize edit set image</code>;
+    o job só termina quando o <code>rollout status</code> e o smoke test passam.</li>
+    <li><b>Branches protegidas</b>: <code>main</code> e <code>develop</code> exigem Pull Request, aprovação e os checks
+    <code>test</code> e <code>quality</code>; push direto e force push bloqueados.</li>
+  </ul>
+  <div class="print">[INSERIR PRINT: ruleset da branch main (Settings → Rules) e um PR com os checks aprovados]</div>
+  <div class="print">[INSERIR PRINT: execução do pipeline com build, push no ECR e deploy]</div>
+</section>
+
+<!-- ═══════════════════════ 10. INFRA ═══════════════════════ -->
+<section>
+  <h2>10. Infraestrutura e Kubernetes</h2>
+  <ul>
+    <li><b>Plataforma</b> (<code>fiap-officine-kubernets</code>): VPC, cluster K3s, API Gateway HTTP com Lambda Authorizer
+    e um repositório ECR por serviço. <b>Banco</b> (<code>fiap-officine-database</code>): instância RDS PostgreSQL.</li>
+    <li><b>Por serviço</b> (<code>infra/</code>): filas e DLQ, tabelas DynamoDB (com GSI da fila, TTL e PITR) e política IAM.</li>
+    <li><b>Manifests</b> (<code>k8s/</code>, Kustomize): base com Deployment (initContainer de migração Alembic, probes de
+    readiness e liveness, limites de recursos, usuário não-root), Service, HPA e Ingress Traefik com roteamento por
+    path; overlay de homolog com as configurações do ambiente. Namespace único <code>officine</code>.</li>
+    <li><b>Acesso à AWS pelos pods</b>: instance profile do nó (IMDSv2 com hop limit 2); cada serviço anexa sua política.</li>
+    <li><b>Ambiente local</b>: <code>docker-compose</code> em cada repositório e no <code>fiap-officine-e2e</code>, com LocalStack
+    (SQS e DynamoDB) e PostgreSQL.</li>
+  </ul>
+  <div class="print">[INSERIR PRINT: <code>kubectl -n officine get pods,svc,ingress,hpa</code> com os três serviços]</div>
+</section>
+
+<!-- ═══════════════════════ 11. OBSERVABILIDADE ═══════════════════════ -->
+<section>
+  <h2>11. Observabilidade</h2>
+  <ul>
+    <li><b>APM por serviço</b>: <code>officine-os-service</code>, <code>officine-billing-service</code> e
+    <code>officine-execution-service</code> aparecem separados no Service Map.</li>
+    <li><b>Distributed tracing atravessando o SQS</b>: os headers de trace vão no campo <code>trace</code> do envelope e
+    são aceitos pelo consumer (<code>transport_type="Queue"</code>) — um único trace mostra OS → Billing → OS → Execution.</li>
+    <li><b>Logs estruturados</b> (JSON) com <code>correlation_id</code>, <code>saga_id</code> e <code>os_id</code>, encaminhados ao
+    New Relic como atributos: <code>context.saga_id:"…"</code> mostra a saga inteira nos três serviços.</li>
+    <li><b>Eventos de negócio</b>: <code>SagaStepEvent</code>, <code>SagaCompensationEvent</code>, <code>SagaFailedEvent</code>,
+    <code>PagamentoEvent</code>, <code>ExecucaoEvent</code>, <code>MessageProcessingFailure</code>, <code>WebhookRejected</code>.</li>
+    <li><b>Dashboard e alertas como código</b> (Terraform, <code>observability/newrelic/</code>): painel "Saga de OS"
+    (funil, tempo por passo, compensações, saúde dos serviços) e alertas de saga <code>FAILED</code>, DLQ com mensagens,
+    falhas no consumer, latência p95, taxa de erro e webhook rejeitado.</li>
+  </ul>
+  <div class="print">[INSERIR PRINT: distributed trace atravessando os três serviços]</div>
+  <div class="print">[INSERIR PRINT: dashboard "fiap-officine — Saga de OS"]</div>
+  <div class="print">[INSERIR PRINT: logs filtrados por <code>context.saga_id</code> e política de alertas]</div>
+</section>
+
+<!-- ═══════════════════════ 12. TRADE-OFFS ═══════════════════════ -->
+<section>
+  <h2>12. Trade-offs e limitações</h2>
+  <table>
+    <tr><th style="width:30%">Decisão</th><th>Motivo e consequência</th></tr>
+    <tr><td>Ambiente único (homolog)</td><td>Projeto acadêmico: <code>develop</code> e <code>main</code> publicam no mesmo cluster. A estrutura de overlays e tfvars permite acrescentar produção sem mudar os serviços.</td></tr>
+    <tr><td>Uma instância RDS para dois bancos</td><td>Free Tier. Isolamento lógico (banco e usuário por serviço, sem GRANT cruzado), não físico.</td></tr>
+    <tr><td>Consumer no mesmo processo da API</td><td>Cabe no nó <code>t3.micro</code> (um pod por serviço). Em escala, separar em Deployments de worker.</td></tr>
+    <tr><td>Pods usam a role do nó</td><td>No K3s não há IRSA; todos os pods compartilham o instance profile. No EKS, trocar por IRSA (privilégio mínimo por serviço).</td></tr>
+    <tr><td>SQS standard</td><td>Sem garantia de ordem: o orquestrador tolera eventos fora de ordem e duplicados (idempotência).</td></tr>
+    <tr><td>Itens da OS definidos na abertura</td><td>O orçamento é gerado no início da saga; mudanças de escopo exigem nova OS.</td></tr>
+    <tr><td>Bancos criados por Job no cluster</td><td>O RDS é privado; o pipeline não alcança o banco. Um Job idempotente cria banco e usuário a cada deploy.</td></tr>
+  </table>
+  <p>As decisões estão registradas nos ADRs do OS Service (<code>docs/architecture/adr/</code>), em especial o ADR-006
+  (microsserviços e saga orquestrada) e o ADR-007 (SQS, DynamoDB e banco por serviço).</p>
+</section>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<script>
+  mermaid.initialize({ startOnLoad: false, theme: "neutral", securityLevel: "loose",
+    flowchart: { htmlLabels: true, useMaxWidth: true }, sequence: { useMaxWidth: true } });
+  mermaid.run({ querySelector: ".mermaid" }).then(() => { document.body.dataset.ready = "1"; });
+</script>
+</body>
+</html>
