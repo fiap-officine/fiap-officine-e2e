@@ -51,6 +51,16 @@ pastas *Preparação*, *Caminho feliz*, *Falha: estoque insuficiente → estorno
 assíncrona). Variáveis `os_url`, `billing_url`, `execution_url` apontam para
 localhost; em AWS, use a URL do API Gateway nas três.
 
+## Entrega
+
+- **Roteiro do vídeo** (passo a passo da gravação, até 15 min):
+  [docs/roteiro-video.md](docs/roteiro-video.md)
+- **Relatório da Fase 4** (PDF do portal):
+  [docs/entrega/relatorio-fase4.pdf](docs/entrega/relatorio-fase4.pdf). Para
+  preencher nomes/RMs, link do vídeo e prints, edite
+  [docs/entrega/relatorio-fase4.html](docs/entrega/relatorio-fase4.html) (campos
+  em amarelo) e rode `powershell -ExecutionPolicy Bypass -File docs/entrega/gerar-pdf.ps1`.
+
 ## Demonstrações para o vídeo
 
 | Cena | Como provocar |
