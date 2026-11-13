@@ -2,7 +2,7 @@
 # (SQS e DynamoDB) para rodar a saga ponta a ponta localmente.
 #
 # Pré-requisito: os repositórios clonados lado a lado:
-#   ../fiap-officine-os-service (ou ../fiap-officine-api)
+#   ../fiap-officine-os-service (clone local antigo: OS_SERVICE_DIR=../fiap-officine-api)
 #   ../fiap-officine-billing-service
 #   ../fiap-officine-execution-service
 x-aws-env: &aws-env
@@ -47,7 +47,7 @@ services:
       retries: 40
 
   os-service:
-    build: ${OS_SERVICE_DIR:-../fiap-officine-api}
+    build: ${OS_SERVICE_DIR:-../fiap-officine-os-service}
     ports: ["${OS_PORT:-8000}:8000"]
     environment:
       <<: *aws-env
