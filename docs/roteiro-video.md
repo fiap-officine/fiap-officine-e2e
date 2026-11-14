@@ -55,22 +55,26 @@ pipeline, Terraform e banco próprios:
 | Acesso | Para quê | Como |
 |---|---|---|
 | Organização `fiap-officine` no GitHub | cena de CI/CD (PR, checks, merge, Actions) | você já é membro; o merge exige 1 aprovação: peça para o Alex aprovar o seu PR (ou use o bypass de admin, se tiver) |
-| **Usuário IAM na AWS** (`pedro-video`) com acesso ao console | ligar/parar a instância, ver a fila no SQS (cena de resiliência), pegar o kubeconfig | o Alex cria e passa a URL de login, usuário e senha. Permissões: `ReadOnlyAccess` + ligar/parar a instância do projeto. Região: **us-east-2** |
-| **kubeconfig** do cluster | comandos `kubectl` (cena de resiliência e CI/CD) | console AWS → *Systems Manager → Parameter Store* → `/fiap-officine/homolog/k3s/kubeconfig` → **Mostrar valor descriptografado** → salve como `kubeconfig.yaml`. É acesso de admin ao cluster: não comite nem compartilhe |
+| **Usuário IAM na AWS** (`pedro-video`, só linha de comando) | ligar/parar a instância, pegar o kubeconfig, ver a fila do SQS (cena de resiliência) | o Alex passa a chave de acesso em particular. Permissões: `ReadOnlyAccess` + ligar/parar a instância do projeto. Configure com `aws configure` (região **us-east-2**, saída `json`) |
+| **kubeconfig** do cluster | comandos `kubectl` (cena de resiliência e CI/CD) | `aws ssm get-parameter --name /fiap-officine/homolog/k3s/kubeconfig --with-decryption --query Parameter.Value --output text > kubeconfig.yaml`. É acesso de admin ao cluster: não comite nem compartilhe |
 | **Conta Comprador de teste** do Mercado Pago | pagar no checkout (sandbox) | o login pede confirmação (MFA) na conta do Alex: **combine o horário com ele** antes de pagar (ensaio e gravação) para ele aprovar na hora |
 | New Relic | cena de observabilidade | você já tem acesso à conta 8505579 |
 | SonarCloud | mostrar cobertura e Quality Gate | projetos públicos, não precisa de login |
 
-Instale também o **kubectl** e o **Postman**, e tenha **Python 3.12** para o ensaio automático.
+Instale também a **AWS CLI**, o **kubectl** e o **Postman**, e tenha **Python 3.12** para o ensaio automático.
 
 ---
 
 ## 4. Véspera da gravação (checklist)
 
-1. **Ligar o ambiente** (fica parado para economizar). Console AWS (us-east-2) →
-   *EC2 → Instâncias* → `fiap-officine-homolog-k3s-server` → *Estado da instância →
-   Iniciar*. Aguarde 3–5 minutos (o endereço não muda). Se o banco também tiver
+1. **Ligar o ambiente** (fica parado para economizar). Se o banco também tiver
    sido parado, peça ao Alex para iniciar o RDS `fiap-officine-homolog-rds` antes.
+   ```bash
+   ID=$(aws ec2 describe-instances --filters "Name=tag:Name,Values=fiap-officine-homolog-k3s-server"         --query 'Reservations[].Instances[].InstanceId' --output text)
+   aws ec2 start-instances --instance-ids $ID
+   aws ec2 wait instance-running --instance-ids $ID   # depois aguarde mais 3 min para o K3s subir
+   ```
+   O endereço do API Gateway não muda.
 2. **Serviços no ar.** Abra no navegador: `<API>/health`,
    `<API>/billing/health` e `<API>/execution/health` → todos com `"status":"healthy"`.
 3. **kubectl.**
@@ -99,8 +103,8 @@ Instale também o **kubectl** e o **Postman**, e tenha **Python 3.12** para o en
    cancela a OS por timeout (e estorna se o pagamento chegar atrasado).
 7. **Abas abertas:** Swagger, Postman, SonarCloud, GitHub (repositório +
    *Actions* + *Settings → Rules*), New Relic (*APM & Services*, *Distributed
-   tracing*, *Logs*, *Dashboards* → "fiap-officine — Saga de OS", *Alerts*),
-   console AWS na fila `fiap-officine-homolog-billing-commands` (*SQS*).
+   tracing*, *Logs*, *Dashboards* → "fiap-officine — Saga de OS", *Alerts*) e um
+   terminal com `KUBECONFIG` e a AWS CLI configurados.
 8. **PR pronto para a cena de CI/CD:** um branch com uma mudança pequena (por
    exemplo, uma linha no README do `fiap-officine-billing-service`) e o PR aberto
    para `develop`, ainda sem merge.
@@ -178,8 +182,10 @@ kubectl -n officine scale deploy/billing-service --replicas=0
 ```
 
 1. **1. Abrir OS** e **2. Consultar saga**: a saga fica parada em `BUDGET_PENDING`.
-2. Console AWS → SQS → `fiap-officine-homolog-billing-commands` → *Mensagens
-   disponíveis* = 1 (o comando esperando).
+2. Mostre o comando esperando na fila (`ApproximateNumberOfMessages` = 1):
+   ```bash
+   aws sqs get-queue-attributes --attribute-names ApproximateNumberOfMessages      --queue-url $(aws sqs get-queue-url --queue-name fiap-officine-homolog-billing-commands --query QueueUrl --output text)
+   ```
 3. Volte a réplica e consulte a saga de novo: ela continua sozinha.
 
 ```bash
@@ -241,7 +247,7 @@ links dos repositórios (seção 1 do PDF).
    `docs/entrega/relatorio-fase4.html`, troque `[LINK DO VÍDEO …]` pelo link e
    rode `powershell -ExecutionPolicy Bypass -File docs/entrega/gerar-pdf.ps1`
    (abra um PR com o PDF novo).
-3. **Pare a instância EC2** (*Estado da instância → Interromper*) para economizar os créditos da conta.
+3. **Pare a instância** para economizar os créditos da conta: `aws ec2 stop-instances --instance-ids $ID`.
 
 ---
 
@@ -249,7 +255,7 @@ links dos repositórios (seção 1 do PDF).
 
 | Sintoma | O que fazer |
 |---|---|
-| Health retorna 503 ou não responde | instância parada ou ainda subindo: confira no console EC2 e aguarde 3–5 min após ligar |
+| Health retorna 503 ou não responde | instância parada ou ainda subindo: `aws ec2 describe-instances --instance-ids $ID --query 'Reservations[].Instances[].State.Name'` e aguarde 3–5 min após ligar |
 | Botão **Pagar** desabilitado ou "A transação não aceita este meio de pagamento" | use **saldo em conta**, em janela anônima nova, logado na conta Comprador de teste |
 | Saga cancelada sozinha depois de aprovar | passou de 5 min sem pagamento (timeout); abra outra OS |
 | Saga parada em `PAYMENT_PENDING` depois de pagar | o reconciliador consulta o Mercado Pago a cada 1 min; espere um pouco |
