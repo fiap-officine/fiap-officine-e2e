@@ -41,7 +41,7 @@ python scripts/e2e_saga.py
    Execution responde `ReservaFalhou` → `EstornarPagamento` →
    `CancelarOrcamento` → OS `cancelada`, pagamento `estornado`.
 
-Para rodar contra o cluster: `python scripts/e2e_saga.py --os https://<api> --billing https://<api> --execution https://<api>`.
+Para rodar contra o cluster (Mercado Pago sandbox): `python scripts/e2e_saga.py --os https://<api> --billing https://<api> --execution https://<api> --pagamento manual --cenario feliz`. O roteiro mostra o link do checkout; pague com a conta Comprador de teste e ele conclui a saga.
 
 ## Postman
 

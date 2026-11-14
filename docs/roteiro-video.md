@@ -17,9 +17,14 @@ Para quem vai gravar. Cada bloco diz **o que mostrar**, **onde clicar/rodar** e
       `os_url`, `billing_url` e `execution_url`.
 - [ ] Rodar a pasta **0. Preparação** uma vez (cria operador, cliente, veículo,
       serviço, peça e **5 unidades** em estoque). Anotar o CPF do cliente.
-- [ ] Mercado Pago sandbox: ter em mãos o **usuário comprador de teste** e um
-      cartão de teste (ex.: Mastercard `5031 4332 1540 6351`, CVV `123`,
-      validade `11/30`, titular **`APRO`** = aprovado).
+- [ ] Mercado Pago sandbox: ter em mãos o **usuário e a senha da conta
+      Comprador de teste** (painel Developers → *Contas de teste*). Abrir o link
+      do checkout numa **janela anônima**, entrar com essa conta e pagar com
+      **saldo em conta** (o que funcionou no ensaio) ou com um cartão salvo da
+      conta (CVV `123`).
+- [ ] Ensaio automático antes de gravar: `python scripts/e2e_saga.py --os <API>
+      --billing <API> --execution <API> --pagamento manual --cenario feliz`
+      (mostra o link do checkout e conclui a saga depois do pagamento).
 - [ ] New Relic: abrir em abas o **Service Map**, o **Distributed Tracing**, o
       dashboard **"fiap-officine — Saga de OS"**, os **Logs** e a política de
       alertas **"fiap-officine — Saga de OS"**.
@@ -27,8 +32,9 @@ Para quem vai gravar. Cada bloco diz **o que mostrar**, **onde clicar/rodar** e
       README) para o bloco de CI/CD.
 - [ ] Terminal com `kubectl` apontando para o cluster de homolog.
 
-> Dica: homolog usa `SAGA_PAYMENT_TIMEOUT_SECONDS=120` e
-> `PAYMENT_EXPIRATION_MINUTES=5`, então dá para mostrar o timeout sem esperar muito.
+> Dica: homolog usa `SAGA_PAYMENT_TIMEOUT_SECONDS=300` (5 min para pagar) e
+> `PAYMENT_EXPIRATION_MINUTES=5`. Pague dentro desse prazo; para mostrar o
+> timeout, aprove um orçamento, não pague e corte a espera na edição.
 
 ---
 
@@ -112,7 +118,7 @@ kubectl -n officine rollout status deploy/billing-service
 
 ### (d) Extras, se sobrar tempo
 
-- **Timeout de pagamento:** aprovar um orçamento e não pagar; em ~2 min a saga
+- **Timeout de pagamento:** aprovar um orçamento e não pagar; em ~5 min a saga
   compensa (`CancelarOrcamento`) e a OS é cancelada.
 - **Ponto sem volta:** depois de **10. iniciar-reparo**,
   `POST /api/v1/ordens-servico/{id}/cancelar` responde **409**.
