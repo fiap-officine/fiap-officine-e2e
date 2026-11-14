@@ -1,185 +1,258 @@
-# Roteiro do vídeo — Tech Challenge Fase 4 (até 15 min)
+# Guia de gravação do vídeo — Tech Challenge Fase 4
 
-Para quem vai gravar. Cada bloco diz **o que mostrar**, **onde clicar/rodar** e
-**o que falar**. Grave bloco a bloco e edite depois; os tempos são a meta.
-
----
-
-## Véspera da gravação (checklist)
-
-- [ ] Os 3 serviços no ar em homolog: `kubectl -n officine get pods` com
-      `os-service`, `billing-service` e `execution-service` em `Running 1/1`.
-- [ ] O namespace antigo da Fase 3 (`posfiap`) removido do cluster.
-- [ ] `GET <API>/health`, `GET <API>/billing/health` e `GET <API>/execution/health`
-      respondendo `healthy` (`<API>` = URL do API Gateway de homolog).
-- [ ] Postman: importar `postman/fiap-officine-saga-e2e.postman_collection.json`
-      e, nas variáveis da collection, colocar a URL do API Gateway em
-      `os_url`, `billing_url` e `execution_url`.
-- [ ] Rodar a pasta **0. Preparação** uma vez (cria operador, cliente, veículo,
-      serviço, peça e **5 unidades** em estoque). Anotar o CPF do cliente.
-- [ ] Mercado Pago sandbox: ter em mãos o **usuário e a senha da conta
-      Comprador de teste** (painel Developers → *Contas de teste*). Abrir o link
-      do checkout numa **janela anônima**, entrar com essa conta e pagar com
-      **saldo em conta** (o que funcionou no ensaio) ou com um cartão salvo da
-      conta (CVV `123`).
-- [ ] Ensaio automático antes de gravar: `python scripts/e2e_saga.py --os <API>
-      --billing <API> --execution <API> --pagamento manual --cenario feliz`
-      (mostra o link do checkout e conclui a saga depois do pagamento).
-- [ ] New Relic: abrir em abas o **Service Map**, o **Distributed Tracing**, o
-      dashboard **"fiap-officine — Saga de OS"**, os **Logs** e a política de
-      alertas **"fiap-officine — Saga de OS"**.
-- [ ] GitHub: um PR pequeno já preparado em um dos serviços (ex.: texto do
-      README) para o bloco de CI/CD.
-- [ ] Terminal com `kubectl` apontando para o cluster de homolog.
-
-> Dica: homolog usa `SAGA_PAYMENT_TIMEOUT_SECONDS=300` (5 min para pagar) e
-> `PAYMENT_EXPIRATION_MINUTES=5`. Pague dentro desse prazo; para mostrar o
-> timeout, aprove um orçamento, não pague e corte a espera na edição.
+Para quem vai gravar o vídeo. O ambiente já está no ar e foi testado de ponta a
+ponta (inclusive com pagamento real no sandbox do Mercado Pago). Este guia diz
+**o que você precisa**, **como preparar** e **o que mostrar em cada cena**.
 
 ---
 
-## 0:00–1:00 — Abertura e arquitetura
+## 1. O que o vídeo precisa mostrar (enunciado)
 
-**Mostrar:** o diagrama geral (README do os-service ou do PDF).
+- Até **15 minutos**, no **YouTube ou Vimeo** (público ou não listado).
+- **Fluxo completo de uma OS** passando pelos microsserviços.
+- **Saga Pattern** em execução e **tratamento de falhas** (compensação).
+- **Deploy automatizado** de pelo menos um microsserviço com validação de testes.
+- **Monitoramento e rastreamento** dos fluxos distribuídos.
 
-**Falar:**
-- Três microsserviços, cada um com repositório, pipeline, infraestrutura e banco
-  próprios: **OS Service** (orquestrador da saga, PostgreSQL `os_db`),
-  **Billing** (orçamentos e Mercado Pago, PostgreSQL `billing_db`) e
-  **Execution** (fila de execução e estoque, **DynamoDB**).
-- Comunicação: REST para o cliente/operador e **SQS** entre os serviços;
-  nenhum serviço acessa o banco do outro (inclusive a Lambda de autenticação).
-- **Saga orquestrada**: o OS Service conduz os passos e dispara as compensações.
+Dica: grave cada bloco separado e edite depois.
 
 ---
 
-## 1:00–4:30 — Fluxo feliz (pasta **1. Caminho feliz**)
+## 2. O projeto em dois minutos
 
-| Passo | Requisição no Postman | O que destacar |
+O monólito da Fase 3 virou **três microsserviços**, cada um com repositório,
+pipeline, Terraform e banco próprios:
+
+| Serviço | Faz | Banco |
 |---|---|---|
-| 1 | **1. Abrir OS (inicia a saga)** | resposta 201 com status `aguardando_orcamento` |
-| 2 | **2. Consultar saga** | estado `BUDGET_PENDING` → `APPROVAL_PENDING` e o primeiro comando `GerarOrcamento` |
-| 3 | **3. Orçamento gerado (Billing)** | orçamento criado pelo Billing a partir da mensagem |
-| 4 | **4. Cliente aprova o orçamento** | aprovação com o **JWT do cliente** (login por CPF via Lambda) |
-| 5 | **5. Cobrança Mercado Pago** | copiar o `checkout_url` |
-| 6 | **Navegador:** abrir o `checkout_url` e pagar com o comprador e o cartão de teste | o Mercado Pago chama o webhook (assinatura `x-signature` validada) |
-| 7 | **7. OS aguardando execução** | status `aguardando_execucao` |
-| 8 | **8. Fila de execução** | OS na fila priorizada do Execution, peças reservadas |
-| 9–11 | **9. iniciar-diagnostico**, **10. iniciar-reparo**, **11. finalizar** | o mecânico avança a OS; cada ação vira evento para o orquestrador |
-| 12 | **12. OS finalizada + saga COMPLETED** | mostrar a **linha do tempo** em `steps` |
-| 13 | **13. Entregar veículo** | status `entregue` |
+| **OS Service** (`fiap-officine-os-service`, era o `fiap-officine-api`) | clientes, veículos, catálogo, OS e **orquestração da saga** | PostgreSQL `os_db` |
+| **Billing** (`fiap-officine-billing-service`) | orçamento, aprovação, **Mercado Pago** (Checkout Pro), estorno | PostgreSQL `billing_db` |
+| **Execution** (`fiap-officine-execution-service`) | estoque, reserva de peças, fila de execução, ações do mecânico | **DynamoDB** |
 
-> Pule a requisição **6. Simular pagamento** (ela só funciona com o gateway
-> fake, usado no ambiente local).
+- Entre os serviços só há **mensageria (Amazon SQS)**; REST só na borda (API
+  Gateway → Traefik). A Lambda de login por CPF consulta o OS Service por REST.
+- **Saga orquestrada** no OS Service: abre OS → gera orçamento → cliente aprova →
+  pagamento → reserva de peças → execução → finaliza. Se algo falha antes do
+  reparo começar, ele compensa em ordem inversa (libera reserva → estorna o
+  pagamento → cancela o orçamento → cancela a OS).
+- **Ambiente (homolog):** AWS **us-east-2 (Ohio)**, conta do Alex. Um nó K3s
+  (EC2 `t3.small`, IP fixo), RDS PostgreSQL 16, DynamoDB, SQS, API Gateway +
+  Lambda, ECR. New Relic na conta **8505579** (a mesma da Fase 3).
+- O PDF da entrega (`docs/entrega/relatorio-fase4.pdf`) tem o diagrama geral,
+  bom para a abertura.
+
+| Endereço | Para quê |
+|---|---|
+| `https://xppl1n6lwl.execute-api.us-east-2.amazonaws.com` | entrada única (API Gateway) — chamada de `<API>` abaixo |
+| `<API>/docs`, `<API>/billing/docs`, `<API>/execution/docs` | Swagger dos três serviços |
+| https://sonarcloud.io/organizations/fiap-officine/projects | qualidade (público, sem login) |
+| https://github.com/fiap-officine | repositórios e Actions |
+
+---
+
+## 3. Acessos que você precisa (peça ao Alex)
+
+| Acesso | Para quê | Como |
+|---|---|---|
+| Organização `fiap-officine` no GitHub | cena de CI/CD (PR, checks, merge, Actions) | você já é membro; o merge exige 1 aprovação: peça para o Alex aprovar o seu PR (ou use o bypass de admin, se tiver) |
+| **Usuário IAM na AWS** com acesso ao console | ver a fila no SQS (cena de resiliência), pegar o kubeconfig, ligar a instância se estiver parada | o Alex cria em *IAM → Usuários* com a política `ReadOnlyAccess` (e, se quiser ligar/desligar a instância, permissão `ec2:StartInstances`/`ec2:StopInstances`). Região: **us-east-2** |
+| **kubeconfig** do cluster | comandos `kubectl` (cena de resiliência e CI/CD) | console AWS → *Systems Manager → Parameter Store* → `/fiap-officine/homolog/k3s/kubeconfig` → **Mostrar valor descriptografado** → salve como `kubeconfig.yaml`. É acesso de admin ao cluster: não comite nem compartilhe |
+| **Conta Comprador de teste** do Mercado Pago | pagar no checkout (sandbox) | usuário e senha: o Alex passa em particular (painel *Developers → Contas de teste*) |
+| New Relic | cena de observabilidade | você já tem acesso à conta 8505579 |
+| SonarCloud | mostrar cobertura e Quality Gate | projetos públicos, não precisa de login |
+
+Instale também o **kubectl** e o **Postman**, e tenha **Python 3.12** para o ensaio automático.
+
+---
+
+## 4. Véspera da gravação (checklist)
+
+1. **Instância ligada.** Console AWS (us-east-2) → *EC2 → Instâncias* →
+   `fiap-officine-homolog-k3s-server` → estado *Em execução*. Se estiver parada,
+   *Iniciar instância* e aguarde 3 minutos (o endereço não muda).
+2. **Serviços no ar.** Abra no navegador: `<API>/health`,
+   `<API>/billing/health` e `<API>/execution/health` → todos com `"status":"healthy"`.
+3. **kubectl.**
+   ```bash
+   export KUBECONFIG=$PWD/kubeconfig.yaml      # PowerShell: $env:KUBECONFIG="$PWD\kubeconfig.yaml"
+   kubectl -n officine get pods                # os-service, billing-service, execution-service em Running 1/1
+   ```
+4. **Ensaio automático** (clone o `fiap-officine-e2e`):
+   ```bash
+   python scripts/e2e_saga.py --os <API> --billing <API> --execution <API> --pagamento manual --cenario feliz
+   ```
+   O script mostra o link do checkout; pague (ver item 6) e ele conclui a saga até
+   a entrega (`E2E OK ✅`). **Ensaie também a compensação** (`--cenario compensacao`):
+   ela nunca rodou no cluster com Mercado Pago real, então é bom ver o estorno
+   funcionando antes de gravar.
+5. **Postman.** Importe `postman/fiap-officine-saga-e2e.postman_collection.json`.
+   As variáveis já apontam para o API Gateway. Rode a pasta **0. Preparação** uma
+   vez (cria operador, cliente, veículo, serviço, peça e **5 unidades** em
+   estoque). Se rodar de novo, troque as variáveis `cpf` (ex.: `39053344705`) e
+   `placa` (ex.: `DEM0002`) para não dar "já cadastrado". "Registrar operador"
+   pode responder erro se o usuário já existir — tudo bem, o login funciona.
+6. **Pagamento no sandbox:** abra o link do checkout numa **janela anônima**,
+   entre com a conta Comprador de teste e pague com **saldo em conta** (foi o que
+   funcionou no ensaio). Cartões salvos pedem o código de segurança `123`.
+   **Pague em até 5 minutos** depois de aprovar o orçamento: depois disso a saga
+   cancela a OS por timeout (e estorna se o pagamento chegar atrasado).
+7. **Abas abertas:** Swagger, Postman, SonarCloud, GitHub (repositório +
+   *Actions* + *Settings → Rules*), New Relic (*APM & Services*, *Distributed
+   tracing*, *Logs*, *Dashboards* → "fiap-officine — Saga de OS", *Alerts*),
+   console AWS na fila `fiap-officine-homolog-billing-commands` (*SQS*).
+8. **PR pronto para a cena de CI/CD:** um branch com uma mudança pequena (por
+   exemplo, uma linha no README do `fiap-officine-billing-service`) e o PR aberto
+   para `develop`, ainda sem merge.
+
+---
+
+## 5. Roteiro cena a cena
+
+| Tempo | Cena |
+|---|---|
+| 0:00–1:00 | Abertura e arquitetura |
+| 1:00–4:30 | Fluxo feliz completo |
+| 4:30–8:00 | Falhas e compensação |
+| 8:00–11:00 | CI/CD com deploy automatizado |
+| 11:00–14:00 | Observabilidade (New Relic) |
+| 14:00–15:00 | Encerramento |
+
+### 0:00–1:00 — Abertura e arquitetura
+
+**Mostrar:** o diagrama da seção 2 do PDF.
+
+**Falar:** três microsserviços com repositório, pipeline, infraestrutura e banco
+próprios (PostgreSQL no OS e no Billing, DynamoDB no Execution); REST na borda e
+SQS entre os serviços; nenhum serviço acessa o banco do outro; saga
+**orquestrada** no OS Service, com compensação.
+
+### 1:00–4:30 — Fluxo feliz (Postman, pasta **1. Caminho feliz**)
+
+| Passo | Requisição | O que destacar |
+|---|---|---|
+| 1 | **1. Abrir OS (inicia a saga)** | 201, status `aguardando_orcamento` |
+| 2 | **2. Consultar saga** | estado `APPROVAL_PENDING`, comando `GerarOrcamento` enviado e `OrcamentoGerado` recebido |
+| 3 | **3. Orçamento gerado (Billing)** | o Billing criou o orçamento a partir da mensagem |
+| 4 | **4. Cliente aprova o orçamento** | aprovação com o **token do cliente** (login por CPF) |
+| 5 | **5. Cobrança Mercado Pago** | copie o `checkout_url` |
+| 6 | **Navegador (janela anônima):** pagar com a conta Comprador de teste (saldo em conta) | o Mercado Pago confirma pelo **webhook** (assinatura `x-signature` validada e pagamento reconsultado na API) |
+| 7 | **7. OS aguardando execução** | `aguardando_execucao` |
+| 8 | **8. Fila de execução** | OS na fila do Execution, peças reservadas no DynamoDB |
+| 9–11 | **9. Mecânico inicia diagnóstico**, **10. Mecânico inicia reparo (pivô)**, **11. Mecânico finaliza** | cada ação vira evento para o orquestrador |
+| 12 | **12. OS finalizada + saga COMPLETED** | mostre a **linha do tempo** em `steps` |
+| 13 | **13. Entregar veículo** | `entregue` |
+
+> **Pule a requisição 6. Simular pagamento**: ela só funciona com o gateway fake
+> do ambiente local.
+
+Opcional (requisito da Fase 3): login do cliente pela **Lambda** —
+`POST <API>/auth/login` com `{"cpf": "<cpf da Preparação>"}` devolve o JWT.
 
 **Falar:** cada passo é um comando numa fila e uma resposta na fila
-`os-saga-replies`; tudo passa pelo **Transactional Outbox** e os consumers são
+`os-saga-replies`; tudo passa pelo **Transactional Outbox** e os consumidores são
 **idempotentes** (mensagem repetida não gera efeito duplicado).
 
----
+### 4:30–8:00 — Falhas e compensação
 
-## 4:30–8:00 — Falhas e compensação
+**(a) Estoque insuficiente depois do pagamento** (pasta **2. Falha: estoque insuficiente**)
 
-### (a) Estoque insuficiente depois do pagamento (pasta **2. Falha: estoque insuficiente**)
+1. **A. Abrir OS com 10 pastilhas** (sobraram 3 em estoque após o fluxo feliz).
+2. **B. Orçamento** → **C. Aprovar** → **D. Cobrança** → pague o `checkout_url`
+   no sandbox. Pule **E. Pagar (fake)**.
+3. **F. Saga compensada**: em `steps`, `ReservaFalhou` → `EstornarPagamento` →
+   `PagamentoEstornado` → `CancelarOrcamento` → saga `CANCELLED`, OS `cancelada`.
+4. **G. Pagamento estornado**: status `estornado`.
 
-1. **A. Abrir OS com 10 pastilhas** (o estoque tem 5).
-2. **B. Orçamento** → **C. Aprovar** → **D. Cobrança** → pagar o `checkout_url`
-   no sandbox (como no fluxo feliz).
-3. **F. Saga compensada**: mostrar em `steps` a sequência
-   `ReservaFalhou` → `EstornarPagamento` → `PagamentoEstornado` →
-   `CancelarOrcamento` → saga `CANCELLED`, OS `cancelada`.
-4. **G. Pagamento estornado**: status `estornado`. Opcional: mostrar o estorno no
-   painel do Mercado Pago.
-
-**Falar:** a compensação roda em **ordem inversa** e cada passo é confirmado
-antes do próximo; se uma compensação falhar, ela é repetida e, ao esgotar as
+**Falar:** a compensação roda em **ordem inversa** e cada passo é confirmado antes
+do próximo; se uma compensação falhar, ela é repetida e, ao esgotar as
 tentativas, a saga vai para `FAILED` e dispara alerta.
 
-### (b) Orçamento recusado (pasta **3. Falha: orçamento recusado**)
-
+**(b) Orçamento recusado** (pasta **3. Falha: orçamento recusado**):
 **R1** → **R2** → **R3. Cliente recusa** → **R4. OS cancelada**.
 
-### (c) Resiliência da mensageria
+**(c) Resiliência da mensageria**
 
 ```bash
 kubectl -n officine scale deploy/billing-service --replicas=0
 ```
 
-1. Abrir uma OS (**1. Abrir OS**). Em **2. Consultar saga**, ela fica parada em
-   `BUDGET_PENDING`.
-2. Mostrar a mensagem esperando na fila (console AWS → SQS →
-   `fiap-officine-homolog-billing-commands` → *Mensagens disponíveis* = 1).
-3. Voltar a réplica e consultar a saga de novo: ela continua sozinha.
+1. **1. Abrir OS** e **2. Consultar saga**: a saga fica parada em `BUDGET_PENDING`.
+2. Console AWS → SQS → `fiap-officine-homolog-billing-commands` → *Mensagens
+   disponíveis* = 1 (o comando esperando).
+3. Volte a réplica e consulte a saga de novo: ela continua sozinha.
 
 ```bash
 kubectl -n officine scale deploy/billing-service --replicas=1
 kubectl -n officine rollout status deploy/billing-service
 ```
 
-### (d) Extras, se sobrar tempo
+**(d) Extras, se sobrar tempo:** depois de **10. Mecânico inicia reparo (pivô)**,
+`POST <API>/api/v1/ordens-servico/{id}/cancelar` responde **409** (ponto sem
+volta). Timeout: aprovar e não pagar → em ~5 min a saga cancela (corte a espera).
 
-- **Timeout de pagamento:** aprovar um orçamento e não pagar; em ~5 min a saga
-  compensa (`CancelarOrcamento`) e a OS é cancelada.
-- **Ponto sem volta:** depois de **10. iniciar-reparo**,
-  `POST /api/v1/ordens-servico/{id}/cancelar` responde **409**.
+### 8:00–11:00 — CI/CD
 
----
+1. Abra o PR preparado: checks **test** (lint, testes, cobertura ≥ 80%) e
+   **quality** (SonarCloud Quality Gate) — e o comentário do SonarCloud no PR.
+2. *Settings → Rules*: ruleset `fase4-protecao-main-develop` (PR obrigatório,
+   aprovação, checks exigidos, sem push direto).
+3. Merge (com a aprovação do Alex) → aba **Actions** → workflow **CI/CD** em
+   `develop`: `test` → `quality` → `build-push` (imagem no ECR com tag = SHA do
+   commit) → `deploy` (bootstrap do banco, `kustomize`, `rollout status`, smoke test).
+4. Terminal:
+   ```bash
+   kubectl -n officine get deploy billing-service -o jsonpath='{.spec.template.spec.containers[0].image}'
+   kubectl -n officine rollout history deploy/billing-service
+   ```
+5. SonarCloud: projeto do serviço com cobertura (≈ 93–95%) e Quality Gate aprovado.
 
-## 8:00–11:00 — CI/CD
+**Falar:** pipeline independente por serviço; nada vai para o cluster sem passar
+nos testes, na cobertura mínima e no Quality Gate; credenciais vêm de GitHub
+Secrets e do SSM, nunca do código.
 
-1. No GitHub, abrir o PR preparado para `develop` e mostrar os checks
-   **test** (lint + testes + cobertura ≥ 80%) e **quality** (SonarCloud
-   Quality Gate).
-2. Mostrar a regra de proteção da branch (*Settings → Rules*): PR obrigatório e
-   checks exigidos.
-3. Fazer o merge e abrir a aba **Actions**: `build-push` publica a imagem no ECR
-   com a **tag = SHA do commit**; `deploy` roda o bootstrap do banco,
-   `kustomize edit set image`, `rollout status` e o smoke test.
-4. No terminal, mostrar a nova versão rodando:
+### 11:00–14:00 — Observabilidade (New Relic)
 
-```bash
-kubectl -n officine get deploy os-service -o jsonpath='{.spec.template.spec.containers[0].image}'
-kubectl -n officine rollout history deploy/os-service
-```
+1. **APM & Services**: `officine-os-service`, `officine-billing-service` e
+   `officine-execution-service` (ignore `fiap-officine-api-homolog`, que é o
+   monólito da Fase 3) e o **Service Map**.
+2. **Distributed tracing**: o trace de uma OS atravessando OS → SQS → Billing →
+   SQS → OS → Execution.
+3. **Logs**: busque `context.saga_id:"<saga_id>"` (o id está em **2. Consultar
+   saga**) e mostre os logs dos três serviços juntos.
+4. **Dashboards → "fiap-officine — Saga de OS"**: sagas iniciadas/concluídas/
+   canceladas, funil, tempo por passo, compensações por motivo.
+5. **Alerts**: política "fiap-officine — Saga de OS" (saga `FAILED`, DLQ,
+   falhas no consumer, latência p95, taxa de erro, webhook rejeitado).
 
-5. SonarCloud: abrir o projeto e mostrar cobertura e Quality Gate.
+### 14:00–15:00 — Encerramento
 
-**Falar:** cada serviço tem pipeline independente; nada vai para o cluster sem
-passar nos testes, na cobertura mínima e no Quality Gate.
-
----
-
-## 11:00–14:00 — Observabilidade (New Relic)
-
-1. **Service Map**: os três serviços (`officine-os-service`,
-   `officine-billing-service`, `officine-execution-service`) e as dependências.
-2. **Distributed Tracing**: abrir o trace da abertura de uma OS e mostrar o
-   mesmo trace atravessando OS → SQS → Billing → SQS → OS.
-3. **Logs**: buscar `context.saga_id:"<saga_id do fluxo feliz>"` (o id está em
-   **2. Consultar saga**) e mostrar os logs dos três serviços juntos.
-4. **Dashboard "fiap-officine — Saga de OS"**: sagas iniciadas/concluídas/
-   canceladas, funil, tempo médio por passo, compensações por motivo.
-5. **Alertas**: mostrar a política (saga `FAILED`, mensagens na DLQ, latência
-   p95, taxa de erro, webhook rejeitado) e, se houver, o incidente aberto
-   durante os testes de falha.
+Recapitule (3 microsserviços, saga orquestrada com compensação, SQS + outbox +
+idempotência, SQL + NoSQL, Mercado Pago, testes ≥ 80% com BDD, SonarCloud, CI/CD
+independente com deploy no Kubernetes, observabilidade distribuída) e mostre os
+links dos repositórios (seção 1 do PDF).
 
 ---
 
-## 14:00–15:00 — Encerramento
+## 6. Depois de gravar
 
-- Recapitular: 3 microsserviços, saga orquestrada com compensação, SQS +
-  outbox + idempotência, SQL + NoSQL, Mercado Pago, testes ≥ 80% com BDD,
-  SonarCloud, CI/CD independente com deploy no Kubernetes e observabilidade
-  distribuída.
-- Mostrar os links dos 7 repositórios (README do os-service ou do PDF).
+1. Publique no YouTube ou Vimeo (público ou **não listado**).
+2. Mande o link para o Alex, ou coloque você mesmo no PDF: em
+   `docs/entrega/relatorio-fase4.html`, troque `[LINK DO VÍDEO …]` pelo link e
+   rode `powershell -ExecutionPolicy Bypass -File docs/entrega/gerar-pdf.ps1`
+   (abra um PR com o PDF novo).
+3. Avise o Alex para **parar a instância EC2** (economiza os créditos da conta).
 
 ---
 
-## Se algo der errado na hora
+## 7. Se algo der errado
 
 | Sintoma | O que fazer |
 |---|---|
-| Saga parada em `PAYMENT_PENDING` depois de pagar | o webhook não chegou; o reconciliador consulta o Mercado Pago a cada minuto. Esperar ~1 min ou conferir o `MP_NOTIFICATION_URL` |
-| Pod em `CrashLoopBackOff` | `kubectl -n officine logs deploy/<serviço> --previous` |
-| `401` nas rotas do Billing/Execution | token expirado: refazer **Login operador** / **Login do cliente** |
-| Saga não avança | `GET <API>/health` mostra `outbox.pending` e o status do SQS |
+| Health retorna 503 ou não responde | instância parada ou reiniciando: confira no console EC2 e aguarde 3 min após ligar |
+| Botão **Pagar** desabilitado ou "A transação não aceita este meio de pagamento" | use **saldo em conta**, em janela anônima nova, logado na conta Comprador de teste |
+| Saga cancelada sozinha depois de aprovar | passou de 5 min sem pagamento (timeout); abra outra OS |
+| Saga parada em `PAYMENT_PENDING` depois de pagar | o reconciliador consulta o Mercado Pago a cada 1 min; espere um pouco |
+| `401` nas chamadas | token expirado: refaça **Login operador** / **Login do cliente** |
+| "Criar cliente" ou "Criar veículo" falha | já existe: troque as variáveis `cpf` e `placa` e rode a Preparação de novo |
+| Pod com erro | `kubectl -n officine describe pod <pod>` e `kubectl -n officine logs deploy/<serviço>` |
+| Saga não avança | `<API>/health` mostra o status do banco, do SQS e do outbox |
