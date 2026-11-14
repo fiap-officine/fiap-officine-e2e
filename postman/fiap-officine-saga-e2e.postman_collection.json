@@ -7,19 +7,27 @@
   "variable": [
     {
       "key": "os_url",
-      "value": "http://localhost:8000"
+      "value": "https://xppl1n6lwl.execute-api.us-east-2.amazonaws.com"
     },
     {
       "key": "billing_url",
-      "value": "http://localhost:8001"
+      "value": "https://xppl1n6lwl.execute-api.us-east-2.amazonaws.com"
     },
     {
       "key": "execution_url",
-      "value": "http://localhost:8002"
+      "value": "https://xppl1n6lwl.execute-api.us-east-2.amazonaws.com"
     },
     {
       "key": "api_gateway",
-      "value": "https://<api-id>.execute-api.sa-east-1.amazonaws.com"
+      "value": "https://xppl1n6lwl.execute-api.us-east-2.amazonaws.com"
+    },
+    {
+      "key": "cpf",
+      "value": "11144477735"
+    },
+    {
+      "key": "placa",
+      "value": "DEM0001"
     }
   ],
   "item": [
@@ -116,7 +124,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"nome\": \"Maria Demo\",\n  \"cpf_cnpj\": \"529.982.247-25\",\n  \"email\": \"maria@demo.com\"\n}"
+              "raw": "{\n  \"nome\": \"Maria Demo\",\n  \"cpf_cnpj\": \"{{cpf}}\",\n  \"email\": \"maria@demo.com\"\n}"
             }
           },
           "event": [
@@ -149,7 +157,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"cpf\": \"52998224725\"\n}"
+              "raw": "{\n  \"cpf\": \"{{cpf}}\"\n}"
             }
           },
           "event": [
@@ -188,7 +196,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"cliente_id\": \"{{cliente_id}}\",\n  \"placa\": \"DEM0001\",\n  \"marca\": \"VW\",\n  \"modelo\": \"Gol\",\n  \"ano\": 2019\n}"
+              "raw": "{\n  \"cliente_id\": \"{{cliente_id}}\",\n  \"placa\": \"{{placa}}\",\n  \"marca\": \"VW\",\n  \"modelo\": \"Gol\",\n  \"ano\": 2019\n}"
             }
           },
           "event": [

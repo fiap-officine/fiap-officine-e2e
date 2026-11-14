@@ -43,6 +43,8 @@
   .cover table { font-size: 10.5pt; }
   .toc { columns: 2; font-size: 10pt; }
   .toc li { break-inside: avoid; }
+  .badges img { height: 20px; margin: 0 4px 4px 0; vertical-align: middle; }
+  .ok { color: #1d8a5a; font-weight: 600; }
 </style>
 </head>
 <body>
@@ -55,14 +57,11 @@
     <div class="subtitle">fiap-officine: gestão de oficina mecânica em microsserviços com Saga orquestrada</div>
   </div>
   <div>
-    <h3>Grupo <span class="todo">[Nº DO GRUPO]</span></h3>
+    <h3>Grupo</h3>
     <table>
-      <tr><th style="width:70%">Participante</th><th>RM</th></tr>
-      <tr><td><span class="todo">[NOME COMPLETO]</span></td><td><span class="todo">[RM]</span></td></tr>
-      <tr><td><span class="todo">[NOME COMPLETO]</span></td><td><span class="todo">[RM]</span></td></tr>
-      <tr><td><span class="todo">[NOME COMPLETO]</span></td><td><span class="todo">[RM]</span></td></tr>
-      <tr><td><span class="todo">[NOME COMPLETO]</span></td><td><span class="todo">[RM]</span></td></tr>
-      <tr><td><span class="todo">[NOME COMPLETO]</span></td><td><span class="todo">[RM]</span></td></tr>
+      <tr><th style="width:46%">Participante</th><th style="width:38%">E-mail (portal FIAP)</th><th>RM</th></tr>
+      <tr><td>Alexsandro Alves de Medeiros Junior</td><td>aleexmedeiros.jr@gmail.com</td><td><span class="todo">[RM]</span></td></tr>
+      <tr><td>Pedro Henrique Aquino de Brito</td><td>phpraquinobrito@gmail.com</td><td><span class="todo">[RM]</span></td></tr>
     </table>
     <p style="color:var(--muted)">Novembro de 2026</p>
   </div>
@@ -72,7 +71,7 @@
 <section>
   <h2>1. Entregáveis</h2>
   <h3>Vídeo de demonstração</h3>
-  <p><span class="todo">[LINK DO VÍDEO — YouTube não listado ou Google Drive]</span></p>
+  <p><span class="todo">[LINK DO VÍDEO — YouTube ou Vimeo, público ou não listado, até 15 min]</span></p>
 
   <h3>Repositórios (organização <code>fiap-officine</code> no GitHub)</h3>
   <table>
@@ -84,6 +83,16 @@
     <tr><td><a href="https://github.com/fiap-officine/fiap-officine-kubernets">github.com/fiap-officine/fiap-officine-kubernets</a></td><td>Plataforma: VPC, cluster K3s, API Gateway, ECR (Terraform)</td></tr>
     <tr><td><a href="https://github.com/fiap-officine/fiap-officine-database">github.com/fiap-officine/fiap-officine-database</a></td><td>Instância RDS PostgreSQL compartilhada (Terraform)</td></tr>
     <tr><td><a href="https://github.com/fiap-officine/fiap-officine-e2e">github.com/fiap-officine/fiap-officine-e2e</a></td><td>Ambiente ponta a ponta (docker-compose), roteiro automatizado da saga e collection Postman</td></tr>
+  </table>
+
+  <h3>Ambiente publicado (homolog, AWS us-east-2)</h3>
+  <table>
+    <tr><th style="width:32%">Recurso</th><th>Endereço</th></tr>
+    <tr><td>API Gateway (entrada única)</td><td><code>https://xppl1n6lwl.execute-api.us-east-2.amazonaws.com</code></td></tr>
+    <tr><td>Swagger dos serviços</td><td><code>/docs</code> (OS), <code>/billing/docs</code>, <code>/execution/docs</code></td></tr>
+    <tr><td>Qualidade (SonarCloud)</td><td><a href="https://sonarcloud.io/organizations/fiap-officine/projects">sonarcloud.io/organizations/fiap-officine</a></td></tr>
+    <tr><td>Observabilidade (New Relic)</td><td>Dashboard "fiap-officine — Saga de OS" e política de alertas na conta 8505579</td></tr>
+    <tr><td>Postman e roteiro E2E</td><td><code>fiap-officine-e2e/postman</code> e <code>scripts/e2e_saga.py</code></td></tr>
   </table>
 
   <h3>Conteúdo deste documento</h3>
@@ -206,7 +215,8 @@
   </div>
   <div class="caption">Figura 1 — Visão geral: REST na borda, SQS entre os serviços, um banco por serviço. Os três serviços enviam APM, traces e logs ao New Relic.</div>
   <p>Cada serviço roda em um único pod com a API, o consumer da fila, o <i>outbox relay</i> e os varredores
-  (timeouts da saga e reconciliação de pagamentos) no mesmo processo, para caber no nó K3s <code>t3.micro</code>.</p>
+  (timeouts da saga e reconciliação de pagamentos) no mesmo processo, para caber no nó K3s <code>t3.small</code>
+  (2 GiB). Detalhes do ambiente na seção 10.</p>
 </section>
 
 <!-- ═══════════════════════ 3. DIVISÃO ═══════════════════════ -->
@@ -241,7 +251,7 @@
   <table>
     <tr><th style="width:16%">Decisão</th><th style="width:20%">Escolha</th><th style="width:22%">Alternativas</th><th>Justificativa</th></tr>
     <tr><td>Linguagem</td><td>Python 3.12, FastAPI, SQLAlchemy 2, uv</td><td>Java/Spring, Node</td><td>Domínio do time; reaproveita middleware, logs JSON e testes da Fase 3</td></tr>
-    <tr><td>Broker</td><td>Amazon SQS (standard + DLQ)</td><td>RabbitMQ no cluster, Kafka</td><td>Gerenciado, DLQ nativa, sem ocupar RAM do nó K3s <code>t3.micro</code>, custo dentro do Free Tier</td></tr>
+    <tr><td>Broker</td><td>Amazon SQS (standard + DLQ)</td><td>RabbitMQ no cluster, Kafka</td><td>Gerenciado, DLQ nativa, sem ocupar RAM do nó K3s, custo dentro do Free Tier</td></tr>
     <tr><td>NoSQL</td><td>DynamoDB</td><td>MongoDB</td><td><code>TransactWriteItems</code> condicional dá reserva atômica e idempotente; modelo chave-valor serve para a fila e a linha do tempo</td></tr>
     <tr><td>SQL</td><td>PostgreSQL 16 (RDS)</td><td>MySQL</td><td>Já provisionado; ACID para OS, saga, outbox e pagamentos</td></tr>
     <tr><td>Saga</td><td>Orquestrada</td><td>Coreografada</td><td>Ver seção 5</td></tr>
@@ -433,18 +443,22 @@ sequenceDiagram
     <li><b>Desenvolvimento e testes</b>: a porta <code>PaymentGateway</code> tem duas implementações —
     <code>MercadoPagoGateway</code> (sandbox/produção) e <code>FakeGateway</code> (local, testes e roteiro E2E).</li>
   </ul>
-  <div class="print">[INSERIR PRINT: checkout do Mercado Pago no sandbox e/ou pagamento aprovado e estornado no painel]</div>
+  <div class="note"><b>Validado no ambiente publicado (14/11/2026).</b> Saga completa da OS #4 no cluster: orçamento
+  gerado, aprovado pelo cliente, cobrança criada no Checkout Pro (sandbox), pagamento aprovado pela conta Comprador de
+  teste (operação 188600082329) e confirmado pelo webhook, reserva de peças, diagnóstico, reparo, finalização e entrega
+  — saga <code>COMPLETED</code>. No sandbox o billing não envia o e-mail do pagador (<code>MP_ENVIAR_EMAIL_PAGADOR=false</code>),
+  pois o pagador é a conta de teste logada no checkout.</div>
 </section>
 
 <!-- ═══════════════════════ 8. QUALIDADE ═══════════════════════ -->
 <section>
   <h2>8. Qualidade e testes</h2>
   <table>
-    <tr><th>Repositório</th><th>Testes</th><th>Cobertura (branch)</th><th>Destaques</th></tr>
-    <tr><td>OS Service</td><td>208</td><td>94,7%</td><td>orquestrador (todos os caminhos e compensações), mensageria, API, 6 cenários BDD</td></tr>
-    <tr><td>Billing Service</td><td>57</td><td>93,3%</td><td>comandos da saga, assinatura do webhook, gateway, reconciliação</td></tr>
-    <tr><td>Execution Service</td><td>39</td><td>93,2%</td><td>reserva condicional no DynamoDB (moto), fila, idempotência</td></tr>
-    <tr><td>Lambda Auth</td><td>27</td><td>94%</td><td>authorizer JWT e cliente HTTP do OS Service</td></tr>
+    <tr><th>Repositório</th><th>Testes</th><th>Cobertura</th><th>Destaques</th></tr>
+    <tr><td>OS Service</td><td>208</td><td>95,0% (SonarCloud)</td><td>orquestrador (todos os caminhos e compensações), mensageria, API, 6 cenários BDD</td></tr>
+    <tr><td>Billing Service</td><td>58</td><td>93,7% (SonarCloud)</td><td>comandos da saga, assinatura do webhook, gateway, reconciliação</td></tr>
+    <tr><td>Execution Service</td><td>39</td><td>93,8% (SonarCloud)</td><td>reserva condicional no DynamoDB (moto), fila, idempotência</td></tr>
+    <tr><td>Lambda Auth</td><td>27</td><td>94% (pytest)</td><td>authorizer JWT e cliente HTTP do OS Service</td></tr>
   </table>
   <p>O gate <code>--cov-fail-under=80</code> roda em todo PR e push, sem exclusões no relatório de cobertura.
   O SonarCloud recebe o <code>coverage.xml</code> e o job <code>quality</code> só passa com o Quality Gate aprovado.</p>
@@ -461,7 +475,17 @@ sequenceDiagram
   </ul>
   <p>Além disso, o repositório <code>fiap-officine-e2e</code> sobe os três serviços com PostgreSQL e LocalStack e roda o
   caminho feliz e a compensação de ponta a ponta.</p>
-  <div class="print">[INSERIR PRINT: SonarCloud — cobertura e Quality Gate dos três serviços]</div>
+  <h3>Evidências ao vivo (SonarCloud, branch develop)</h3>
+  <table class="badges">
+    <tr><th style="width:30%">Projeto</th><th>Quality Gate e cobertura</th></tr>
+    <tr><td>os-service</td><td><a href="https://sonarcloud.io/summary/overall?id=fiap-officine_fiap-officine-os-service"><img alt="Quality Gate" src="https://sonarcloud.io/api/project_badges/measure?project=fiap-officine_fiap-officine-os-service&amp;metric=alert_status"></a><a href="https://sonarcloud.io/summary/overall?id=fiap-officine_fiap-officine-os-service"><img alt="Coverage" src="https://sonarcloud.io/api/project_badges/measure?project=fiap-officine_fiap-officine-os-service&amp;metric=coverage"></a><a href="https://sonarcloud.io/summary/overall?id=fiap-officine_fiap-officine-os-service"><img alt="Security" src="https://sonarcloud.io/api/project_badges/measure?project=fiap-officine_fiap-officine-os-service&amp;metric=security_rating"></a></td></tr>
+    <tr><td>billing-service</td><td><a href="https://sonarcloud.io/summary/overall?id=fiap-officine_fiap-officine-billing-service"><img alt="Quality Gate" src="https://sonarcloud.io/api/project_badges/measure?project=fiap-officine_fiap-officine-billing-service&amp;metric=alert_status"></a><a href="https://sonarcloud.io/summary/overall?id=fiap-officine_fiap-officine-billing-service"><img alt="Coverage" src="https://sonarcloud.io/api/project_badges/measure?project=fiap-officine_fiap-officine-billing-service&amp;metric=coverage"></a><a href="https://sonarcloud.io/summary/overall?id=fiap-officine_fiap-officine-billing-service"><img alt="Security" src="https://sonarcloud.io/api/project_badges/measure?project=fiap-officine_fiap-officine-billing-service&amp;metric=security_rating"></a></td></tr>
+    <tr><td>execution-service</td><td><a href="https://sonarcloud.io/summary/overall?id=fiap-officine_fiap-officine-execution-service"><img alt="Quality Gate" src="https://sonarcloud.io/api/project_badges/measure?project=fiap-officine_fiap-officine-execution-service&amp;metric=alert_status"></a><a href="https://sonarcloud.io/summary/overall?id=fiap-officine_fiap-officine-execution-service"><img alt="Coverage" src="https://sonarcloud.io/api/project_badges/measure?project=fiap-officine_fiap-officine-execution-service&amp;metric=coverage"></a><a href="https://sonarcloud.io/summary/overall?id=fiap-officine_fiap-officine-execution-service"><img alt="Security" src="https://sonarcloud.io/api/project_badges/measure?project=fiap-officine_fiap-officine-execution-service&amp;metric=security_rating"></a></td></tr>
+    <tr><td>lambda</td><td><a href="https://sonarcloud.io/summary/overall?id=fiap-officine_fiap-officine-lambda"><img alt="Quality Gate" src="https://sonarcloud.io/api/project_badges/measure?project=fiap-officine_fiap-officine-lambda&amp;metric=alert_status"></a><a href="https://sonarcloud.io/summary/overall?id=fiap-officine_fiap-officine-lambda"><img alt="Coverage" src="https://sonarcloud.io/api/project_badges/measure?project=fiap-officine_fiap-officine-lambda&amp;metric=coverage"></a></td></tr>
+  </table>
+  <p>Os mesmos badges estão no topo do README de cada repositório. Os achados de segurança da cadeia de CI apontados
+  pelo Sonar foram corrigidos (actions fixadas por SHA, dependências instaladas do lock sem executar scripts de build,
+  pods sem token de service account).</p>
 </section>
 
 <!-- ═══════════════════════ 9. CI/CD ═══════════════════════ -->
@@ -473,39 +497,65 @@ sequenceDiagram
 flowchart LR
     A["PR / push"] --> B["test<br/>ruff + pytest<br/>cobertura >= 80%"]
     B --> C["quality<br/>SonarCloud<br/>Quality Gate"]
-    C -->|"push em develop/main"| D["build-push<br/>imagem no ECR<br/>tag = SHA"]
+    C -->|"merge em develop"| D["build-push<br/>imagem no ECR<br/>tag = SHA"]
     D --> E["deploy<br/>bootstrap do banco<br/>kustomize + rollout"]
-    E --> F["smoke test<br/>/health"]
+    E --> F["smoke test<br/>health pelo Service"]
 </pre>
   </div>
   <ul>
     <li><b>Infraestrutura do serviço</b> (<code>infra.yml</code>): Terraform com state remoto no S3 — <code>plan</code> no PR,
     <code>apply</code> no merge (filas + DLQ, tabelas DynamoDB, políticas IAM).</li>
-    <li><b>Segredos</b>: nunca versionados; gerados no pipeline a partir de GitHub Secrets como Secrets do Kubernetes.</li>
-    <li><b>Imagem imutável</b>: a tag é o SHA do commit, aplicada com <code>kustomize edit set image</code>;
-    o job só termina quando o <code>rollout status</code> e o smoke test passam.</li>
-    <li><b>Branches protegidas</b>: <code>main</code> e <code>develop</code> exigem Pull Request, aprovação e os checks
-    <code>test</code> e <code>quality</code>; push direto e force push bloqueados.</li>
+    <li><b>Configuração sem cópia manual</b>: kubeconfig, endpoint e credenciais master do RDS, URL do API Gateway e role
+    do nó são lidos do <b>SSM Parameter Store</b>, publicados pelos repositórios de plataforma e banco.</li>
+    <li><b>Segredos</b>: nunca versionados; gerados no pipeline a partir de GitHub Secrets como Secrets do Kubernetes.
+    Um hash dos Secrets vai como anotação do pod, então trocar uma credencial reinicia os pods.</li>
+    <li><b>Imagem imutável</b>: tag = SHA do commit (<code>kustomize edit set image</code>), credencial de pull do ECR
+    renovada a cada deploy; o job só termina com <code>rollout status</code> e smoke test aprovados e, em falha, mostra
+    pods, eventos e logs.</li>
+    <li><b>Fluxo de branches</b>: PRs para <code>develop</code>; o merge em <code>develop</code> publica no homolog. A
+    <code>main</code> recebe PRs vindos de <code>develop</code> como marco de versão (o SonarCloud Free analisa um único
+    branch, configurado como <code>develop</code>).</li>
+    <li><b>Branches protegidas</b>: <code>main</code> e <code>develop</code> exigem Pull Request com aprovação, resolução
+    de conversas e os checks <code>test</code> e <code>quality</code>; push direto, force push e deleção bloqueados.</li>
+    <li><b>Acesso mínimo na AWS</b>: o usuário do CI usa a política <code>fiap-officine-ci</code> (somente us-east-2,
+    recursos <code>fiap-officine-*</code>, IAM restrito às roles do projeto), sem <code>AdministratorAccess</code>.</li>
   </ul>
-  <div class="print">[INSERIR PRINT: ruleset da branch main (Settings → Rules) e um PR com os checks aprovados]</div>
-  <div class="print">[INSERIR PRINT: execução do pipeline com build, push no ECR e deploy]</div>
+  <h3>Situação dos pipelines em develop (badges ao vivo)</h3>
+  <table class="badges">
+    <tr><th style="width:30%">Repositório</th><th style="width:40%">Pipeline</th><th>Status</th></tr>
+    <tr><td>fiap-officine-os-service</td><td>testes → Sonar → ECR → deploy no K3s</td><td><a href="https://github.com/fiap-officine/fiap-officine-os-service/actions"><img alt="fiap-officine-os-service" src="https://github.com/fiap-officine/fiap-officine-os-service/actions/workflows/ci-cd.yml/badge.svg?branch=develop"></a></td></tr>
+    <tr><td>fiap-officine-billing-service</td><td>testes → Sonar → ECR → deploy no K3s</td><td><a href="https://github.com/fiap-officine/fiap-officine-billing-service/actions"><img alt="fiap-officine-billing-service" src="https://github.com/fiap-officine/fiap-officine-billing-service/actions/workflows/ci-cd.yml/badge.svg?branch=develop"></a></td></tr>
+    <tr><td>fiap-officine-execution-service</td><td>testes → Sonar → ECR → deploy no K3s</td><td><a href="https://github.com/fiap-officine/fiap-officine-execution-service/actions"><img alt="fiap-officine-execution-service" src="https://github.com/fiap-officine/fiap-officine-execution-service/actions/workflows/ci-cd.yml/badge.svg?branch=develop"></a></td></tr>
+    <tr><td>fiap-officine-lambda</td><td>testes → deploy da Lambda (Terraform)</td><td><a href="https://github.com/fiap-officine/fiap-officine-lambda/actions"><img alt="fiap-officine-lambda" src="https://github.com/fiap-officine/fiap-officine-lambda/actions/workflows/deploy.yml/badge.svg?branch=develop"></a></td></tr>
+    <tr><td>fiap-officine-kubernets</td><td>plan → apply da plataforma</td><td><a href="https://github.com/fiap-officine/fiap-officine-kubernets/actions"><img alt="fiap-officine-kubernets" src="https://github.com/fiap-officine/fiap-officine-kubernets/actions/workflows/terraform.yml/badge.svg?branch=develop"></a></td></tr>
+    <tr><td>fiap-officine-database</td><td>plan → apply do RDS</td><td><a href="https://github.com/fiap-officine/fiap-officine-database/actions"><img alt="fiap-officine-database" src="https://github.com/fiap-officine/fiap-officine-database/actions/workflows/terraform.yml/badge.svg?branch=develop"></a></td></tr>
+  </table>
 </section>
 
 <!-- ═══════════════════════ 10. INFRA ═══════════════════════ -->
 <section>
   <h2>10. Infraestrutura e Kubernetes</h2>
   <ul>
-    <li><b>Plataforma</b> (<code>fiap-officine-kubernets</code>): VPC, cluster K3s, API Gateway HTTP com Lambda Authorizer
-    e um repositório ECR por serviço. <b>Banco</b> (<code>fiap-officine-database</code>): instância RDS PostgreSQL.</li>
+    <li><b>Região us-east-2 (Ohio)</b>: a conta AWS do grupo (plano gratuito) só libera essa região.</li>
+    <li><b>Plataforma</b> (<code>fiap-officine-kubernets</code>): VPC sem NAT Gateway, nó K3s <code>t3.small</code> com
+    <b>Elastic IP</b> (endereço estável mesmo após parar a instância), API Gateway HTTP com Lambda Authorizer e rota
+    <code>/auth</code> ligadas automaticamente, um repositório ECR por serviço e parâmetros compartilhados no SSM.</li>
+    <li><b>Banco</b> (<code>fiap-officine-database</code>): RDS PostgreSQL 16 em subnets privadas; acesso liberado só para o
+    nó K3s e a Lambda; endpoint e credenciais master publicados no SSM (senha como SecureString).</li>
     <li><b>Por serviço</b> (<code>infra/</code>): filas e DLQ, tabelas DynamoDB (com GSI da fila, TTL e PITR) e política IAM.</li>
-    <li><b>Manifests</b> (<code>k8s/</code>, Kustomize): base com Deployment (initContainer de migração Alembic, probes de
-    readiness e liveness, limites de recursos, usuário não-root), Service, HPA e Ingress Traefik com roteamento por
-    path; overlay de homolog com as configurações do ambiente. Namespace único <code>officine</code>.</li>
+    <li><b>Terraform</b>: todos os repositórios com state remoto no S3 (bucket criado pelo próprio pipeline).</li>
+    <li><b>Manifests</b> (<code>k8s/</code>, Kustomize): Deployment com initContainer de migração Alembic, probes de
+    readiness e liveness, limites de recursos, usuário não-root (UID numérico) e sem token de service account; Service,
+    HPA e Ingress Traefik com roteamento por path. Namespace único <code>officine</code>.</li>
     <li><b>Acesso à AWS pelos pods</b>: instance profile do nó (IMDSv2 com hop limit 2); cada serviço anexa sua política.</li>
     <li><b>Ambiente local</b>: <code>docker-compose</code> em cada repositório e no <code>fiap-officine-e2e</code>, com LocalStack
     (SQS e DynamoDB) e PostgreSQL.</li>
   </ul>
-  <div class="print">[INSERIR PRINT: <code>kubectl -n officine get pods,svc,ingress,hpa</code> com os três serviços]</div>
+  <h3>Health checks pelo API Gateway (14/11/2026, 20:54 UTC)</h3>
+<p>Base: <code>https://xppl1n6lwl.execute-api.us-east-2.amazonaws.com</code></p>
+<pre class="code">GET /health            → os-service        healthy  database=up  messaging=up  outbox pendente=0
+GET /billing/health    → billing-service   healthy  database=up  messaging=up  gateway=mercadopago
+GET /execution/health  → execution-service healthy  database=up (DynamoDB)  messaging=up</pre>
 </section>
 
 <!-- ═══════════════════════ 11. OBSERVABILIDADE ═══════════════════════ -->
@@ -524,9 +574,17 @@ flowchart LR
     (funil, tempo por passo, compensações, saúde dos serviços) e alertas de saga <code>FAILED</code>, DLQ com mensagens,
     falhas no consumer, latência p95, taxa de erro e webhook rejeitado.</li>
   </ul>
-  <div class="print">[INSERIR PRINT: distributed trace atravessando os três serviços]</div>
-  <div class="print">[INSERIR PRINT: dashboard "fiap-officine — Saga de OS"]</div>
-  <div class="print">[INSERIR PRINT: logs filtrados por <code>context.saga_id</code> e política de alertas]</div>
+  <table>
+    <tr><th style="width:36%">Alerta (política "fiap-officine — Saga de OS")</th><th>Condição</th></tr>
+    <tr><td>Saga falhou</td><td>qualquer <code>SagaFailedEvent</code> (compensação esgotou as tentativas)</td></tr>
+    <tr><td>Mensagens na DLQ</td><td>alguma fila <code>*-dlq</code> com mensagens por 5 min</td></tr>
+    <tr><td>Falhas no consumer</td><td>mais de 5 <code>MessageProcessingFailure</code> em 5 min</td></tr>
+    <tr><td>Latência p95</td><td>acima de 1 s por 5 min, por serviço</td></tr>
+    <tr><td>Taxa de erro</td><td>acima de 5% por 5 min, por serviço</td></tr>
+    <tr><td>Webhook rejeitado</td><td>notificação do Mercado Pago com assinatura inválida</td></tr>
+  </table>
+  <p>Dashboard e alertas são aplicados pelo workflow <code>observability.yml</code> do OS Service (Terraform, state no S3).
+  O vídeo mostra o trace distribuído, os logs por <code>saga_id</code> e o dashboard.</p>
 </section>
 
 <!-- ═══════════════════════ 12. TRADE-OFFS ═══════════════════════ -->
@@ -534,9 +592,11 @@ flowchart LR
   <h2>12. Trade-offs e limitações</h2>
   <table>
     <tr><th style="width:30%">Decisão</th><th>Motivo e consequência</th></tr>
-    <tr><td>Ambiente único (homolog)</td><td>Projeto acadêmico: <code>develop</code> e <code>main</code> publicam no mesmo cluster. A estrutura de overlays e tfvars permite acrescentar produção sem mudar os serviços.</td></tr>
+    <tr><td>Ambiente único (homolog)</td><td>Projeto acadêmico: o merge em <code>develop</code> publica no cluster; a <code>main</code> é o marco de versão. A estrutura de overlays e tfvars permite acrescentar produção sem mudar os serviços.</td></tr>
+    <tr><td>Plano gratuito da AWS</td><td>A organização da conta só libera us-east-2 e tipos de instância do Free Tier (o t3.medium foi recusado). O nó <code>t3.small</code> (2 GiB) comporta os três serviços com uma réplica cada.</td></tr>
+    <tr><td>SonarCloud Free</td><td>Analisa os PRs e um único branch: <code>develop</code>, onde ocorre o deploy.</td></tr>
     <tr><td>Uma instância RDS para dois bancos</td><td>Free Tier. Isolamento lógico (banco e usuário por serviço, sem GRANT cruzado), não físico.</td></tr>
-    <tr><td>Consumer no mesmo processo da API</td><td>Cabe no nó <code>t3.micro</code> (um pod por serviço). Em escala, separar em Deployments de worker.</td></tr>
+    <tr><td>Consumer no mesmo processo da API</td><td>Um pod por serviço no nó único. Em escala, separar em Deployments de worker.</td></tr>
     <tr><td>Pods usam a role do nó</td><td>No K3s não há IRSA; todos os pods compartilham o instance profile. No EKS, trocar por IRSA (privilégio mínimo por serviço).</td></tr>
     <tr><td>SQS standard</td><td>Sem garantia de ordem: o orquestrador tolera eventos fora de ordem e duplicados (idempotência).</td></tr>
     <tr><td>Itens da OS definidos na abertura</td><td>O orçamento é gerado no início da saga; mudanças de escopo exigem nova OS.</td></tr>

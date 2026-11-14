@@ -48,12 +48,15 @@ Para rodar contra o cluster (Mercado Pago sandbox): `python scripts/e2e_saga.py 
 [postman/fiap-officine-saga-e2e.postman_collection.json](postman/fiap-officine-saga-e2e.postman_collection.json):
 pastas *Preparação*, *Caminho feliz*, *Falha: estoque insuficiente → estorno* e
 *Falha: orçamento recusado*. Rode no Runner com **delay de 2000 ms** (a saga é
-assíncrona). Variáveis `os_url`, `billing_url`, `execution_url` apontam para
-localhost; em AWS, use a URL do API Gateway nas três.
+assíncrona). As variáveis `os_url`, `billing_url` e `execution_url` apontam para o
+API Gateway de homolog; para o ambiente local, troque por `http://localhost:8000`,
+`:8001` e `:8002`. `cpf` e `placa` são variáveis: troque-as para rodar a
+Preparação de novo. No cluster, pule as requisições de pagamento *fake* e pague
+pelo link do checkout (ver [docs/roteiro-video.md](docs/roteiro-video.md)).
 
 ## Entrega
 
-- **Roteiro do vídeo** (passo a passo da gravação, até 15 min):
+- **Guia de gravação do vídeo** (acessos, preparação e roteiro cena a cena, até 15 min):
   [docs/roteiro-video.md](docs/roteiro-video.md)
 - **Relatório da Fase 4** (PDF do portal):
   [docs/entrega/relatorio-fase4.pdf](docs/entrega/relatorio-fase4.pdf). Para
