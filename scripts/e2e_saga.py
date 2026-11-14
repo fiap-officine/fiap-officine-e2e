@@ -7,6 +7,10 @@ cancelamento do orçamento -> OS cancelada.
 
 Uso: python scripts/e2e_saga.py [--os http://localhost:8000]
      [--billing http://localhost:8001] [--execution http://localhost:8002]
+     [--pagamento fake|manual] [--cenario todos|feliz|compensacao]
+
+No cluster (Mercado Pago sandbox), use a URL do API Gateway nas três opções e
+--pagamento manual: o roteiro mostra o link do checkout e espera o pagamento.
 Requer apenas a biblioteca padrão do Python.
 """
 
@@ -71,6 +75,11 @@ def main() -> int:
     parser.add_argument("--os", default="http://localhost:8000")
     parser.add_argument("--billing", default="http://localhost:8001")
     parser.add_argument("--execution", default="http://localhost:8002")
+    parser.add_argument(
+        "--pagamento", choices=["fake", "manual"], default="fake",
+        help="fake: simula no gateway fake (local); manual: mostra o link do checkout "
+             "do Mercado Pago (sandbox) e espera o pagamento confirmado pelo webhook")
+    parser.add_argument("--cenario", choices=["todos", "feliz", "compensacao"], default="todos")
     args = parser.parse_args()
 
     sufixo = uuid.uuid4().hex[:6]
@@ -116,38 +125,46 @@ def main() -> int:
         print(f"  ✔ cliente aprovou o orçamento #{orcamento['id']} (R$ {orcamento['valor_total']})")
         pagamento = esperar("cobrança criada no gateway", lambda: next(
             iter(billing.call("GET", f"/api/v1/pagamentos/?orcamento_id={orcamento['id']}")), None))
-        billing.call("POST", f"/api/v1/pagamentos/{pagamento['id']}/simular", {"status": "approved"})
-        print(f"  ✔ pagamento #{pagamento['id']} aprovado (gateway fake / webhook simulado)")
+        if args.pagamento == "fake":
+            billing.call("POST", f"/api/v1/pagamentos/{pagamento['id']}/simular", {"status": "approved"})
+            print(f"  ✔ pagamento #{pagamento['id']} aprovado (gateway fake / webhook simulado)")
+            return
+        print("  → pague no sandbox do Mercado Pago com a conta Comprador de teste:")
+        print(f"    {pagamento['checkout_url']}")
+        esperar("pagamento aprovado no Mercado Pago (webhook)", lambda: billing.call(
+            "GET", f"/api/v1/pagamentos/{pagamento['id']}")["status"] == "aprovado", 900)
 
-    print("== Cenário 1: caminho feliz")
-    os_id = abrir_os(2)
-    aprovar_e_pagar(os_id)
-    esperar("OS aguardando execução", lambda: status_os(os_api, os_id) == "aguardando_execucao")
-    esperar("saga IN_EXECUTION", lambda: os_api.call(
-        "GET", f"/api/v1/ordens-servico/{os_id}/saga")["state"] == "IN_EXECUTION")
-    for acao in ("iniciar-diagnostico", "iniciar-reparo", "finalizar"):
-        execution.call("POST", f"/api/v1/execucoes/{os_id}/{acao}", {"observacao": f"E2E {acao}"})
-        print(f"  ✔ mecânico: {acao}")
-    esperar("OS finalizada", lambda: status_os(os_api, os_id) == "finalizada")
-    saga = os_api.call("GET", f"/api/v1/ordens-servico/{os_id}/saga")
-    assert saga["state"] == "COMPLETED", saga
-    os_api.call("POST", f"/api/v1/ordens-servico/{os_id}/entregar", {"observacao": "Retirado"})
-    assert status_os(os_api, os_id) == "entregue"
-    estoque = execution.call("GET", f"/api/v1/estoque/{peca['id']}")
-    assert (estoque["disponivel"], estoque["reservada"]) == (3, 0), estoque
-    print(f"  ✔ OS #{os_id} entregue; saga COMPLETED; estoque {estoque['disponivel']} disponíveis")
+    if args.cenario in ("todos", "feliz"):
+        print("== Cenário 1: caminho feliz")
+        os_id = abrir_os(2)
+        aprovar_e_pagar(os_id)
+        esperar("OS aguardando execução", lambda: status_os(os_api, os_id) == "aguardando_execucao")
+        esperar("saga IN_EXECUTION", lambda: os_api.call(
+            "GET", f"/api/v1/ordens-servico/{os_id}/saga")["state"] == "IN_EXECUTION")
+        for acao in ("iniciar-diagnostico", "iniciar-reparo", "finalizar"):
+            execution.call("POST", f"/api/v1/execucoes/{os_id}/{acao}", {"observacao": f"E2E {acao}"})
+            print(f"  ✔ mecânico: {acao}")
+        esperar("OS finalizada", lambda: status_os(os_api, os_id) == "finalizada")
+        saga = os_api.call("GET", f"/api/v1/ordens-servico/{os_id}/saga")
+        assert saga["state"] == "COMPLETED", saga
+        os_api.call("POST", f"/api/v1/ordens-servico/{os_id}/entregar", {"observacao": "Retirado"})
+        assert status_os(os_api, os_id) == "entregue"
+        estoque = execution.call("GET", f"/api/v1/estoque/{peca['id']}")
+        assert (estoque["disponivel"], estoque["reservada"]) == (3, 0), estoque
+        print(f"  ✔ OS #{os_id} entregue; saga COMPLETED; estoque {estoque['disponivel']} disponíveis")
 
-    print("== Cenário 2: estoque insuficiente -> estorno -> cancelamento")
-    os_id = abrir_os(10)
-    aprovar_e_pagar(os_id)
-    esperar("OS cancelada pela compensação", lambda: status_os(os_api, os_id) == "cancelada", 90)
-    saga = os_api.call("GET", f"/api/v1/ordens-servico/{os_id}/saga")
-    tipos = [s["message_type"] for s in saga["steps"] if s["message_type"]]
-    assert saga["state"] == "CANCELLED", saga
-    assert "ReservaFalhou" in tipos and "EstornarPagamento" in tipos and "CancelarOrcamento" in tipos, tipos
-    pagamentos = billing.call("GET", f"/api/v1/pagamentos/?orcamento_id={saga['orcamento_id']}")
-    assert pagamentos[-1]["status"] == "estornado", pagamentos
-    print(f"  ✔ OS #{os_id} cancelada; pagamento estornado; motivo: {saga['failure_reason']}")
+    if args.cenario in ("todos", "compensacao"):
+        print("== Cenário 2: estoque insuficiente -> estorno -> cancelamento")
+        os_id = abrir_os(10)
+        aprovar_e_pagar(os_id)
+        esperar("OS cancelada pela compensação", lambda: status_os(os_api, os_id) == "cancelada", 90)
+        saga = os_api.call("GET", f"/api/v1/ordens-servico/{os_id}/saga")
+        tipos = [s["message_type"] for s in saga["steps"] if s["message_type"]]
+        assert saga["state"] == "CANCELLED", saga
+        assert "ReservaFalhou" in tipos and "EstornarPagamento" in tipos and "CancelarOrcamento" in tipos, tipos
+        pagamentos = billing.call("GET", f"/api/v1/pagamentos/?orcamento_id={saga['orcamento_id']}")
+        assert pagamentos[-1]["status"] == "estornado", pagamentos
+        print(f"  ✔ OS #{os_id} cancelada; pagamento estornado; motivo: {saga['failure_reason']}")
     print("\nE2E OK ✅")
     return 0
 
